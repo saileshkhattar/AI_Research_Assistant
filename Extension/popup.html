@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Research Assistant</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+
+  <body>
+    <div class="container">
+
+      <!-- HEADER -->
+      <header class="header">
+        <div class="header-top">
+          <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <h1 class="title">Research AI</h1>
+          </div>
+
+          <button id="clearHistory" class="icon-btn" title="Clear chat history">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Pages</span>
+              <span class="stat-value" id="pageCount">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon status-indicator" id="statusIndicator">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">Current</span>
+              <span class="stat-value" id="currentPageStatus">Unknown</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CHAT AREA -->
+      <div class="chat-container" id="chatContainer">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <h3>Ask me anything</h3>
+          <p>I’ll search your saved pages for answers</p>
+        </div>
+
+        <div class="messages" id="messages"></div>
+      </div>
+
+      <!-- INPUT AREA -->
+      <div class="input-area">
+
+        <div class="input-options">
+          <label class="toggle-option">
+            <input type="checkbox" id="thisPageOnly" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Current page only</span>
+          </label>
+
+          <button id="saveCurrentPage" class="save-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Save page
+          </button>
+        </div>
+
+        <div class="input-wrapper">
+          <textarea
+            id="question"
+            placeholder="What would you like to know?"
+            rows="1"
+          ></textarea>
+
+          <button id="askBtn" class="send-btn" title="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div id="status" class="status-message"></div>
+      </div>
+
+    </div>
+
+    <!-- ✅ ONLY popup.js -->
+    <script src="popup.js"></script>
+  </body>
+</html>

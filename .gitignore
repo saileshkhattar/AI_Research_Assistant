@@ -1,0 +1,84 @@
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Python virtual environment
+venv/
+env/
+.venv/
+pyvenv.cfg
+
+# ----------------------------
+# Environment Variables / Secrets
+# ----------------------------
+.env
+.env.*
+*.env
+
+# ----------------------------
+# Python Packaging / Build
+# ----------------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ----------------------------
+# Logs & Debug
+# ----------------------------
+*.log
+logs/
+
+# ----------------------------
+# Database / Local Storage
+# ----------------------------
+*.sqlite3
+*.db
+*.sqlite
+
+# Chroma DB (vector database storage)
+chroma_db/
+
+# ----------------------------
+# OS Files
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------------
+# VS Code / IDE
+# ----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ----------------------------
+# Chrome Extension
+# ----------------------------
+# Ignore packaged extension files
+*.crx
+*.pem
+*.zip
+
+# Node modules (if you later add build tools)
+node_modules/
+
+# ----------------------------
+# Testing / Coverage
+# ----------------------------
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ----------------------------
+# Misc
+# ----------------------------
+*.bak
+*.tmp
+*.temp
