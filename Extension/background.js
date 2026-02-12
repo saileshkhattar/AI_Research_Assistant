@@ -1,55 +1,29 @@
-const API_BASE = "http://127.0.0.1:8000";
+const userId = await getUserId();
 
-function isHttpUrl(url) {
-  return /^https?:\/\//i.test(url || "");
-}
-
-const processedTabs = new Set();
-
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-
-  if (changeInfo.status !== "complete") return;
-  if (!tab.url || !isHttpUrl(tab.url)) return;
-
-  if (processedTabs.has(tabId)) return;
-  processedTabs.add(tabId);
-
-  try {
-    console.log("erferfwe")
-    const response = await chrome.scripting.executeScript({
+chrome.runtime.onMessage.addListener(async (messages, sender, sendResponse) => {
+  if (messages.action == "Save_Page") {
+    const tabId = messages.tabId;
+    await chrome.scripting.executeScript({
       target: { tabId },
-      func: () => {
-        return {
-          title: document.title || "",
-          content: document.body?.innerText?.slice(0, 30000) || "",
-        };
-      }
+      files: [content.js],
     });
+  }
 
+  if (messages.action == "Page_Captured") {
+    const { content, title, url } = messages;
 
+    const { activeAgent } = await chrome.storage.local.get("activeAgent");
 
-    if (!response || !response[0]) return;
-
-    const { title, content } = response[0].result;
-    console.log(title, content)
-
-    if (!content.trim()) return;
-
-    await fetch(`${API_BASE}/ingest_page`, {
+    await fetch("http://localhost:8000/ingest_page", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        url: tab.url,
+        agent: activeAgent,
+        user_id: userId,
+        url,
         title,
-        content
-      })
+        content,
+      }),
     });
-
-    console.log("Auto-ingested:", tab.url);
-
-  } catch (err) {
-    console.error("Auto ingest failed:", err);
   }
-
-  setTimeout(() => processedTabs.delete(tabId), 5000);
 });

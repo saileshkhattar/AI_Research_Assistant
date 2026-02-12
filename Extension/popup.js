@@ -9,7 +9,7 @@ const els = {
   currentPageStatus: document.getElementById("currentPageStatus"),
   thisPageOnly: document.getElementById("thisPageOnly"),
   saveCurrentPage: document.getElementById("saveCurrentPage"),
-  clearHistory: document.getElementById("clearHistory")
+  clearHistory: document.getElementById("clearHistory"),
 };
 
 let messages = [];
@@ -19,8 +19,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await updateStats();
   attachEvents();
 });
-
-
 
 // ---------- STORAGE ----------
 async function loadMessages() {
@@ -35,7 +33,6 @@ async function saveMessages() {
 
 // ---------- RENDER ----------
 function renderMessages() {
-
   if (!messages.length) {
     document.getElementById("emptyState").style.display = "flex";
     els.messages.style.display = "none";
@@ -46,7 +43,7 @@ function renderMessages() {
   els.messages.style.display = "flex";
 
   els.messages.innerHTML = messages
-    .map(m => {
+    .map((m) => {
       return `
         <div class="message ${m.role}">
           <div class="message-content">${escapeHtml(m.content)}</div>
@@ -81,7 +78,6 @@ function attachEvents() {
 
 // ---------- ASK ----------
 async function askHandler() {
-
   const question = els.question.value.trim();
   if (!question) return;
 
@@ -93,7 +89,10 @@ async function askHandler() {
     let url = null;
 
     if (els.thisPageOnly.checked) {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       url = tab?.url || null;
     }
 
@@ -102,13 +101,12 @@ async function askHandler() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         question,
-        url
-      })
+        url,
+      }),
     });
 
     const data = await res.json();
     addMessage("assistant", data.answer);
-
   } catch {
     addMessage("assistant", "Error contacting backend.");
   }
@@ -120,34 +118,33 @@ function addMessage(role, content) {
   renderMessages();
 }
 
+async function getUserId() {
+  const data = await chrome.storage.local.get("userId");
+
+  if (data.userId) {
+    return data.userId;
+  }
+
+  const newId = crypto.randomUUID();
+
+  await chrome.storage.local.set({ userId: newId });
+
+  return newId;
+}
+
 // ---------- SAVE PAGE ----------
 async function savePageHandler() {
-
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    const response = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => ({
-        title: document.title,
-        content: document.body?.innerText.slice(0, 30000)
-      })
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
     });
 
-    const { title, content } = response[0].result;
-
-    await fetch(`${API_BASE}/ingest_page`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: tab.url,
-        title,
-        content
-      })
+    chrome.runtime.sendmessage;
+    ({
+      action: "Save_Page",
+      tabId: tab.id,
     });
-
-    els.status.textContent = "Page saved!";
-
   } catch {
     els.status.textContent = "Save failed";
   }
@@ -163,19 +160,22 @@ async function clearHistory() {
 // ---------- STATS ----------
 async function updateStats() {
   try {
-
-    const stats = await fetch(`${API_BASE}/stats`).then(r => r.json());
+    const stats = await fetch(`${API_BASE}/stats`).then((r) => r.json());
     els.pageCount.textContent = stats.page_count;
 
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
 
-    const check = await fetch(`${API_BASE}/check_page?url=${encodeURIComponent(tab.url)}`)
-      .then(r => r.json());
+    const check = await fetch(
+      `${API_BASE}/check_page?url=${encodeURIComponent(tab.url)}`,
+    ).then((r) => r.json());
 
     els.currentPageStatus.textContent = check.exists ? "Saved" : "Not saved";
-
   } catch {}
 }
 
-setInterval(updateStats, 10000);
+getUserId();
 
+setInterval(updateStats, 10000);
