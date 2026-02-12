@@ -3,15 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
-from urllib.parse import urlparse, urlunparse
-from sqlalchemy import Column, String, DateTime, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
-from datetime import datetime
 from typing import Optional
-import uuid
 from sqlalchemy.orm import sessionmaker, Session
 from database import engine
 from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException
+from database import SessionLocal
+from fastapi import HTTPException
+from fastapi import Depends
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
@@ -20,68 +20,20 @@ from langchain_core.documents import Document
 from langchain_classic.retrievers import MultiQueryRetriever
 from langchain_core.runnables import RunnableLambda
 from langchain_core.prompts import ChatPromptTemplate
+from database import Base, engine, get_db
+from helpers.urlHelper import normalize_url
+from helpers.agentHelper import ensure_default_agents
+
+import models.users as User
+import models.agents as Agent
+import models.savedPages as SavedPage
+import models.chat as Chats
+
+Base.metadata.create_all(bind=engine)
 
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-Base = declarative_base()
 
-SessionLocal = sessionmaker(bind=engine)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-def normalize_url(url: str):
-    parsed = urlparse(url)
-
-    parsed = parsed._replace(fragment="")
-
-    scheme = parsed.scheme.lower()
-    netloc = parsed.netloc.lower()
-    path = parsed.path.rstrip("/")
-
-    normalized = parsed._replace(
-        scheme=scheme,
-        netloc=netloc,
-        path=path
-    )
-
-    return urlunparse(normalized)
-
-
-def check_if_url_exists(db: Session, agent_id: str, url: str):
-    existing = (
-        db.query(SavedPage)
-        .filter(
-            SavedPage.agent_id == agent_id,
-            SavedPage.url == url
-        )
-        .first()
-    )
-
-    if(existing) :
-        return true
-    
-    return false
-
-
-def ensure_default_agents(db, user_id):
-
-    # General Chat Agent
-    create_if_missing(
-        name="General Chat",
-        type="general"
-    )
-
-    # Inbox Agent
-    create_if_missing(
-        name="Inbox",
-        type="system_inbox"
-    )
 
 
 model = ChatGoogleGenerativeAI(
@@ -148,47 +100,6 @@ rag_chain = (
 
 from pydantic import BaseModel
 
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(String, primary_key = true)
-    created_at = Column(DateTime, default = datetime.utcnow)
-
-class Agent(Base):
-    __tablename__ = "agents"
-
-    id = Column(String, primary_key=True)
-    user_id = Column(String, nullable=False)
-    name = Column(String)
-    type = Column(String, default="knowledge")
-
-
-class SavedPage(Base):
-    __tablename__ = "saved_pages"
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, nullable=False)
-    agent_id = Column(String, nullable=False)
-    url = Column(String, nullable=False)
-    title = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    __table_args__ = (
-        UniqueConstraint("agent_id", "url", name="unique_agent_url"),
-    )
-
-
-class Chat(Base):
-    __tablename__ = "chats"
-
-    id = Column(String, primary_key=True)
-    user_id = Column(String, nullable=False)
-    agent_id = Column(String, nullable=False)
-    page_id = Column(String, nullable=True)   # ⭐ NEW
-    title = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
 class IngestRequest(BaseModel):
     user_id : str
     agent_id: str
@@ -203,7 +114,7 @@ class QueryRequest(BaseModel):
 
 
 
-@router.post("/ingest_page")
+@app.post("/ingest_page")
 async def ingest_page(
     req: IngestRequest,
     db: Session = Depends(get_db)
@@ -220,6 +131,8 @@ async def ingest_page(
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        ensure_default_agents(db, req.user_id)
 
     # ------------------------
     # Validate agent ownership
@@ -241,7 +154,7 @@ async def ingest_page(
     new_page = SavedPage(
         user_id=req.user_id,
         agent_id=req.agent_id,
-        page_id = page_id
+        page_id = req.page_id,
         url=normalized_url,
         title=req.title or ""
     )
