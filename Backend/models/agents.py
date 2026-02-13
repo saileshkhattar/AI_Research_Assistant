@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String
 
 class Agent(Base):
     __tablename__ = "agents"
