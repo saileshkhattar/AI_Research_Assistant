@@ -1,9 +1,15 @@
 fastapi
 uvicorn[standard]
 python-dotenv
+pydantic
+sqlalchemy
+
 langchain
 langchain-core
 langchain-community
 langchain-google-genai
-langchain-text-splitters
 chromadb
+
+tiktoken
+httpx
+google-generativeai

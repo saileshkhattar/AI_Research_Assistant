@@ -1,6 +1,6 @@
 from database import Base
 from sqlalchemy import Column, String, DateTime, UniqueConstraint
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import uuid
 
 
@@ -12,8 +12,8 @@ class SavedPage(Base):
     agent_id = Column(String, nullable=False)
     url = Column(String, nullable=False)
     title = Column(String)
-    created_at = Column(DateTime, default=datetime.now(UTC))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     __table_args__ = (
-        UniqueConstraint("agent_id", "url", name="unique_agent_url"),
+        UniqueConstraint("agent_id", "url","user_id", name="unique_agent_url"),
     )

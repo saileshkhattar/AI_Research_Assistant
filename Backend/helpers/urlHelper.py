@@ -1,5 +1,6 @@
 from models.savedPages import SavedPage
 from urllib.parse import urlparse, urlunparse
+from sqlalchemy.orm import Session
 
 
 def normalize_url(url: str):

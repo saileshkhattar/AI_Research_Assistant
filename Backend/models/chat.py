@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, DateTime
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from database import Base
 
 class Chat(Base):
@@ -10,4 +10,4 @@ class Chat(Base):
     agent_id = Column(String, nullable=False)
     page_id = Column(String, nullable=True)   # ⭐ NEW
     title = Column(String)
-    created_at = Column(DateTime, default=datetime.now(UTC))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
