@@ -8,24 +8,24 @@ const els = {
   pageCount: document.getElementById("pageCount"),
   currentPageStatus: document.getElementById("currentPageStatus"),
   thisPageOnly: document.getElementById("thisPageOnly"),
-  saveCurrentPage: document.getElementById("saveCurrentPage"),
+  saveCurrentPage: document.getElementById("savePageBtn"),
   clearHistory: document.getElementById("clearHistory"),
 };
 
 let messages = [];
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await loadMessages();
-  await updateStats();
+  // await loadMessages();
+  // await updateStats();
   attachEvents();
 });
 
 // ---------- STORAGE ----------
-async function loadMessages() {
-  const res = await chrome.storage.local.get("chatHistory");
-  messages = res.chatHistory || [];
-  renderMessages();
-}
+// async function loadMessages() {
+//   const res = await chrome.storage.local.get("chatHistory");
+//   messages = res.chatHistory || [];
+//   renderMessages();
+// }
 
 async function saveMessages() {
   await chrome.storage.local.set({ chatHistory: messages });
@@ -71,9 +71,9 @@ function escapeHtml(text) {
 
 // ---------- EVENTS ----------
 function attachEvents() {
-  els.askBtn.addEventListener("click", askHandler);
+  // els.askBtn.addEventListener("click", askHandler);
   els.saveCurrentPage.addEventListener("click", savePageHandler);
-  els.clearHistory.addEventListener("click", clearHistory);
+  // els.clearHistory.addEventListener("click", clearHistory);
 }
 
 // ---------- ASK ----------
@@ -121,11 +121,15 @@ function addMessage(role, content) {
 async function getUserId() {
   const data = await chrome.storage.local.get("userId");
 
+  console.log("Storage check result:", data); // 👈 View stored value
+
   if (data.userId) {
+    console.log("Existing userId:", data.userId); // 👈 View existing ID
     return data.userId;
   }
 
   const newId = crypto.randomUUID();
+  console.log("Generated new userId:", newId); // 👈 View generated ID
 
   await chrome.storage.local.set({ userId: newId });
 
@@ -133,15 +137,19 @@ async function getUserId() {
 }
 
 // ---------- SAVE PAGE ----------
+// ---------- SAVE PAGE ----------
 async function savePageHandler() {
+  console.log("DASdassd");
+
   try {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    chrome.runtime.sendmessage;
-    ({
+    console.log("Tab ==>", tab);
+
+    chrome.runtime.sendMessage({
       action: "Save_Page",
       tabId: tab.id,
     });
@@ -150,32 +158,78 @@ async function savePageHandler() {
   }
 }
 
-// ---------- CLEAR ----------
-async function clearHistory() {
-  messages = [];
-  await saveMessages();
-  renderMessages();
+async function ensureUser() {
+  let { user_id } = await chrome.storage.local.get(["user_id"]);
+
+  // -------------------
+  // If user exists locally → verify backend
+  // -------------------
+  if (user_id) {
+    try {
+      const res = await fetch(`${BACKEND}/users/${user_id}`);
+
+      if (res.ok) {
+        return user_id;
+      }
+    } catch {}
+  }
+
+  // -------------------
+  // Create new user
+  // -------------------
+  user_id = crypto.randomUUID();
+
+  await fetch(`${BACKEND}/users?user_id=${user_id}`, {
+    method: "POST",
+  });
+
+  await chrome.storage.local.set({ user_id });
+
+  return user_id;
 }
+
+async function ensureAgents(user_id) {
+  const res = await fetch(`${BACKEND}/agents/${user_id}`);
+  const agents = await res.json();
+
+  // Save full list
+  await chrome.storage.local.set({ agents });
+
+  // Set defaults
+  const inbox = agents.find((a) => a.type === "system_inbox");
+  const general = agents.find((a) => a.type === "general");
+
+  await chrome.storage.local.set({
+    inboxAgentId: inbox?.id,
+    generalAgentId: general?.id,
+    activeAgentId: inbox?.id,
+  });
+}
+
+// // ---------- CLEAR ----------
+// async function clearHistory() {
+//   messages = [];
+//   await saveMessages();
+//   renderMessages();
+// }
 
 // ---------- STATS ----------
-async function updateStats() {
-  try {
-    const stats = await fetch(`${API_BASE}/stats`).then((r) => r.json());
-    els.pageCount.textContent = stats.page_count;
+// async function updateStats() {
+//   try {
+//     const stats = await fetch(`${API_BASE}/stats`).then((r) => r.json());
+//     els.pageCount.textContent = stats.page_count;
 
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+//     const [tab] = await chrome.tabs.query({
+//       active: true,
+//       currentWindow: true,
+//     });
 
-    const check = await fetch(
-      `${API_BASE}/check_page?url=${encodeURIComponent(tab.url)}`,
-    ).then((r) => r.json());
+//     const check = await fetch(
+//       `${API_BASE}/check_page?url=${encodeURIComponent(tab.url)}`,
+//     ).then((r) => r.json());
 
-    els.currentPageStatus.textContent = check.exists ? "Saved" : "Not saved";
-  } catch {}
-}
+//     els.currentPageStatus.textContent = check.exists ? "Saved" : "Not saved";
+//   } catch {}
+// }
 
-getUserId();
-
-setInterval(updateStats, 10000);
+// setInterval(updateStats, 10000);
