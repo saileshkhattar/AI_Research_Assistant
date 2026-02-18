@@ -29,7 +29,9 @@ async def ingest_page(
     # -----------------------------
     # Normalize URL
     # -----------------------------
+    print("Attempting Ingest")
     normalized_url = normalize_url(req.url)
+    print("Normalised URL = ", normalized_url)
 
     # -----------------------------
     # Ensure user exists
@@ -37,12 +39,12 @@ async def ingest_page(
     user = db.query(User).filter(User.id == req.user_id).first()
 
     if not user:
-        user = User(id=req.user_id)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        raise HTTPException(
+            status_code=404,
+            detail="User does not exist"
+        )
 
-        ensure_default_agents(db, req.user_id)
+
 
     # -----------------------------
     # Validate agent ownership

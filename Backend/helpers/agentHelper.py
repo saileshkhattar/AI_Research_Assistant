@@ -25,21 +25,26 @@ def create_agent_if_missing(db, user_id, name, agent_type):
 
 def ensure_default_agents(db, user_id):
 
-    general_agent = create_agent_if_missing(
-        db=db,
-        user_id=user_id,
-        name="General Chat",
-        agent_type="general"
-    )
+    existing = db.query(Agent).filter(
+        Agent.user_id == user_id
+    ).count()
 
-    inbox_agent = create_agent_if_missing(
-        db=db,
+    if existing > 0:
+        return
+
+    inbox = Agent(
+        id=str(uuid.uuid4()),
         user_id=user_id,
         name="Inbox",
-        agent_type="system_inbox"
+        type="system_inbox"
     )
 
-    return {
-        "general": general_agent,
-        "inbox": inbox_agent
-    }
+    general = Agent(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        name="General",
+        type="general"
+    )
+
+    db.add_all([inbox, general])
+    db.commit()
