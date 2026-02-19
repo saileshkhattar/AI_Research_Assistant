@@ -227,3 +227,59 @@ textarea {
   gap: 10px;
 }
 
+.agent-item {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.agent-name {
+  font-weight: 600;
+}
+
+.agent-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.agent-actions {
+  margin-top: 4px;
+}
+
+.view-btn {
+  font-size: 11px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+/* URL LIST */
+.urls-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.url-item {
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.url-item:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* Modal sizing improvement */
+.modal-content {
+  max-height: 400px;
+  overflow: hidden;
+}
+
+
+

@@ -1,9 +1,9 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8"/>
   <title>Research AI</title>
-  <link rel="stylesheet" href="popup.css" />
+  <link rel="stylesheet" href="popup.css"/>
 </head>
 
 <body>
@@ -11,9 +11,7 @@
 
   <!-- HEADER -->
   <header class="header">
-    <div class="header-top">
-      <h1 class="title">Research AI</h1>
-    </div>
+    <h1 class="title">Research AI</h1>
 
     <div class="stats-grid">
       <div class="stat-card">
@@ -22,111 +20,110 @@
       </div>
 
       <div class="stat-card">
-        <span class="stat-label">Active Agent</span>
+        <span class="stat-label">Active Assistant</span>
         <span id="activeAgentLabel" class="stat-value">Inbox</span>
       </div>
     </div>
   </header>
 
 
-  <!-- AGENT SECTION -->
+  <!-- ASSISTANT SECTION -->
   <div class="section">
 
-    <div class="section-header">
-      <label>Assistants</label>
-      <button id="createAgentBtn" class="small-btn">+ New</button>
-    </div>
+    <label>Assistant</label>
 
-    <!-- Searchable Agent Dropdown -->
-    <input
-      id="agentSearch"
-      class="search-input"
-      placeholder="Search assistant..."
-    />
+    <select id="agentSelect" class="select"></select>
 
-    <div id="agentDropdown" class="agent-dropdown">
-      <!-- Filled dynamically -->
+    <div id="agentHelper" class="mode-description"></div>
+
+    <div style="display:flex; gap:8px; margin-top:10px;">
+
+      <button id="viewUrlsBtn" class="secondary-btn">
+        View URLs
+      </button>
+
+      <button id="createAgentBtn" class="primary-btn">
+        + Create Assistant
+      </button>
+
     </div>
 
   </div>
 
 
-  <!-- CHAT MODE SECTION -->
-  <div class="section">
-
-    <label>Chat Mode</label>
-
-    <select id="chatModeSelect" class="select">
-      <option value="assistant">
-        Assistant Knowledge
-      </option>
-      <option value="current_page">
-        Current Page Only
-      </option>
-      <option value="general">
-        General Chat
-      </option>
-    </select>
-
-    <p id="chatModeDescription" class="mode-description">
-      Search across all saved pages in selected assistant.
-    </p>
-
-  </div>
-
-
-  <!-- ACTIONS -->
+  <!-- ACTION -->
   <div class="action-section">
 
     <button id="savePageBtn" class="primary-btn">
       Save Current Page
     </button>
 
-    <button id="openChatBtn" class="secondary-btn">
-      Open Chat Workspace
-    </button>
-
   </div>
 
 
-  <!-- QUICK ASK -->
+  <!-- QUESTION BOX -->
   <div class="quick-section">
 
     <textarea
-      id="quickQuestion"
-      placeholder="Ask quick question (opens chat tab)..."
+      id="questionBox"
+      placeholder="Ask question across this assistant..."
     ></textarea>
 
-    <button id="sendQuickBtn" class="send-btn">
-      Ask
+    <button id="askBtn" class="send-btn">
+      Ask Assistant
     </button>
 
   </div>
 
 
-  <!-- STATUS -->
   <div id="statusMessage" class="status-message"></div>
 
 </div>
 
 
-<!-- CREATE AGENT MODAL -->
+<!-- CREATE MODAL -->
 <div id="agentModal" class="modal hidden">
 
   <div class="modal-content">
 
     <h3>Create Assistant</h3>
 
-    <input
-      id="newAgentName"
-      placeholder="Assistant name"
-      class="modal-input"
-    />
+    <input id="agentNameInput"
+           class="modal-input"
+           placeholder="Assistant name"/>
 
     <div class="modal-actions">
-      <button id="cancelAgentBtn" class="secondary-btn">Cancel</button>
-      <button id="confirmAgentBtn" class="primary-btn">Create</button>
+
+      <button id="cancelCreateBtn"
+              class="secondary-btn">
+        Cancel
+      </button>
+
+      <button id="confirmCreateBtn"
+              class="primary-btn">
+        Create
+      </button>
+
     </div>
+
+  </div>
+
+</div>
+
+
+<!-- URL MODAL -->
+<div id="urlsModal" class="modal hidden">
+
+  <div class="modal-content">
+
+    <h3>Saved URLs</h3>
+
+    <div id="urlsList"></div>
+
+    <button id="closeUrlsBtn"
+            class="primary-btn">
+      Close
+    </button>
 
   </div>
 
@@ -134,5 +131,8 @@
 
 
 <script src="popup.js"></script>
+
 </body>
 </html>
+
+

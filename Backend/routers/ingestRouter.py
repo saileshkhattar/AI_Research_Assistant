@@ -10,7 +10,6 @@ from models.savedPages import SavedPage
 
 from requestSchemas.requestSchemas import IngestRequest
 
-from helpers.agentHelper import ensure_default_agents
 from helpers.urlHelper import normalize_url, check_if_url_exists
 
 from ragSetup.ragArchitecture import text_splitter, vectorstore
