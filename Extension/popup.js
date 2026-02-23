@@ -19,6 +19,7 @@ const els = {
   closeUrlsBtn: document.getElementById("closeUrlsBtn"),
 
   saveBtn: document.getElementById("savePageBtn"),
+  askBtn : document.getElementById("askBtn"),
 
 };
 
@@ -283,6 +284,16 @@ async function savePage(){
   });
 
 }
+
+askBtn.addEventListener("click", () => {
+
+  const chatUrl = chrome.runtime.getURL("chat-ui/index.html");
+
+  chrome.tabs.create({
+    url: chatUrl
+  });
+
+});
 
 
 
