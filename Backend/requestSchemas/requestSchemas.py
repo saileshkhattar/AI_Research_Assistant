@@ -11,9 +11,13 @@ class IngestRequest(BaseModel):
 
 
 class QueryRequest(BaseModel):
+    chat_id: str
+    agent_id: str
+    user_id: str
+    page_id: str | None
     question: str
-    url: str | None = None
 
 class CreateAgentRequest(BaseModel):
     user_id: str
     name: str
+
