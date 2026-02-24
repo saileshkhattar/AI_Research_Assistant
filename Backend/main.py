@@ -5,7 +5,7 @@ from routers import ingestRouter
 from routers.userRouter import router as users_router
 from routers.agentRouter import router as agents_router
 from routers.chatRouter import router as chat_router
-from routers.queryRouter import router as query_router
+from routers.queryStreamRouter import router as query_router
 
 
 

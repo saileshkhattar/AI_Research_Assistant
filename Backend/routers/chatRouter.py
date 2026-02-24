@@ -6,7 +6,7 @@ from database import get_db
 
 from models.chat import Chat
 from models.message import Message
-from models.agent import Agent
+from models.agents import Agent
 from models.users import User
 from models.savedPages import SavedPage
 

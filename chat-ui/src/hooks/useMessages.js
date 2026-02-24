@@ -1,68 +1,80 @@
 import { useChatContext } from "../context/ChatsContext";
 import { useAgentContext } from "../context/AgentsContext";
-import { QueryAPI } from "../services/api.js";
 
 export function useMessages() {
+  const { messages, setMessages } = useChatContext();
 
-  const {
-    messages,
-    setMessages
-  } = useChatContext();
+  const { userId, activeAgentId } = useAgentContext();
 
-  const {
-    userId,
-    activeAgentId
-  } = useAgentContext();
-
-  const sendMessage = async (
-    chatId,
-    text
-  ) => {
-
+  const sendMessage = async (chatId, text) => {
+    // -----------------------------
     // Add user message instantly
+    // -----------------------------
     const userMessage = {
       role: "user",
-      content: text
+      content: text,
     };
 
-    setMessages(prev => [
-      ...prev,
-      userMessage
-    ]);
+    setMessages((prev) => [...prev, userMessage]);
+
+    // -----------------------------
+    // Create empty assistant message
+    // -----------------------------
+    let assistantMessage = {
+      role: "assistant",
+      content: "",
+    };
+
+    setMessages((prev) => [...prev, assistantMessage]);
 
     try {
+      const response = await fetch("http://localhost:8000/query/stream", {
+        method: "POST",
 
-      const response =
-        await QueryAPI.query({
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
           user_id: userId,
           agent_id: activeAgentId,
           chat_id: chatId,
-          message: text
+          question: text,
+          page_id: null,
+        }),
+      });
+
+      const reader = response.body.getReader();
+
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+
+        assistantMessage.content += chunk;
+
+        // Update last assistant message live
+        setMessages((prev) => {
+          const updated = [...prev];
+
+          updated[updated.length - 1] = {
+            ...assistantMessage,
+          };
+
+          return updated;
         });
-
-      const assistantMessage = {
-        role: "assistant",
-        content: response.answer
-      };
-
-      setMessages(prev => [
-        ...prev,
-        assistantMessage
-      ]);
-
+      }
     } catch (err) {
-
-      console.error(err);
-
+      console.error("Streaming error:", err);
     }
-
   };
 
   return {
-
     messages,
-    sendMessage
-
+    sendMessage,
   };
-
 }
