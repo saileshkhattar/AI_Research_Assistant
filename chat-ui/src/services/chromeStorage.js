@@ -1,5 +1,4 @@
 export const chromeStorage = {
-
   get: (keys) =>
     new Promise((resolve) => {
       chrome.storage.local.get(keys, (result) => {
@@ -11,5 +10,4 @@ export const chromeStorage = {
     new Promise((resolve) => {
       chrome.storage.local.set(data, resolve);
     }),
-
 };

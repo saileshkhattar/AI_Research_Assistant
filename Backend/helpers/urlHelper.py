@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 def normalize_url(url: str):
     parsed = urlparse(url)
-
     parsed = parsed._replace(fragment="")
 
     scheme = parsed.scheme.lower()

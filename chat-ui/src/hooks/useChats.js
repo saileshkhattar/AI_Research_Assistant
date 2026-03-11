@@ -1,19 +1,35 @@
-import { useChatContext } from "../context/ChatsContext";
+import { useChatContext } from "../context/Chat/useChatContext.js";
 
 export function useChats() {
-
   const {
     chats,
     setChats,
+    addChat,
+
     activeChatId,
-    setActiveChat
+    setActiveChat,
+    onChatCreated,
+    startNewChat,
+
+    messages,
+    setMessages,
+
+    isLoaded,
   } = useChatContext();
 
   return {
     chats,
     setChats,
-    activeChatId,
-    setActiveChat
-  };
+    addChat,
 
+    activeChatId,
+    setActiveChat,
+    onChatCreated,
+    startNewChat,
+
+    messages,
+    setMessages,
+
+    isLoaded,
+  };
 }

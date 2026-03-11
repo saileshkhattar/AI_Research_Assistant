@@ -11,11 +11,11 @@ class IngestRequest(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    chat_id: str
-    agent_id: str
     user_id: str
-    page_id: str | None
+    agent_id: str
+    chat_id: Optional[str] = None 
     question: str
+    page_id: Optional[str] = None
 
 class CreateAgentRequest(BaseModel):
     user_id: str

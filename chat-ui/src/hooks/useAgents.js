@@ -1,19 +1,14 @@
-import { useAgentContext } from "../context/AgentsContext";
+import { useAgentContext } from "../context/Agent/useAgentContext.js";
 
 export function useAgents() {
-
-  const {
-    agents,
-    activeAgentId,
-    setActiveAgent,
-    setAgents
-  } = useAgentContext();
+  const { agents, activeAgentId, setActiveAgent, setAgents, userId } =
+    useAgentContext();
 
   return {
     agents,
     activeAgentId,
     setActiveAgent,
-    setAgents
+    setAgents,
+    userId,
   };
-
 }

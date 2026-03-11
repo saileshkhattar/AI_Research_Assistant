@@ -14,9 +14,6 @@ router = APIRouter()
 
 @router.get("/agents/{user_id}")
 def get_agents(user_id: str, db: Session = Depends(get_db)):
-
-    ensure_default_agents(db, user_id)
-
     agents = db.query(Agent).filter(
         Agent.user_id == user_id
     ).all()

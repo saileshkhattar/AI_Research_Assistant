@@ -24,12 +24,20 @@ def get_user(user_id: str, db: Session = Depends(get_db)):
 @router.post("/users")
 def create_user(db: Session = Depends(get_db)):
 
+    # Check if a user already exists
+    existing_user = db.query(User).first()
+
+    if existing_user:
+        return {"id": existing_user.id}
+
+    # Create new user if none exists
     new_user = User(id=str(uuid.uuid4()))
 
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
 
-    # create default agents
+    # Create default agents
     ensure_default_agents(db, new_user.id)
 
     return {"id": new_user.id}

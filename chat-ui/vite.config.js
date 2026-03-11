@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   build: {
-     outDir: path.resolve(__dirname, '../extension/chat-ui'),
+     outDir: path.resolve(__dirname, '../Extension/chat-ui'),
     emptyOutDir: true
   }
 })

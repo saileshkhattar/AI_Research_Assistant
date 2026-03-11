@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 # ---------------------------------------------------
-# Create new chat
+# Create new chat (manual creation, still available)
 # ---------------------------------------------------
 @router.post("/chats")
 def create_chat(
@@ -24,30 +24,23 @@ def create_chat(
     title: str | None = None,
     db: Session = Depends(get_db)
 ):
-
-    # validate user
     user = db.query(User).filter(User.id == user_id).first()
-
     if not user:
         raise HTTPException(404, "User not found")
 
-    # validate agent ownership
     agent = db.query(Agent).filter(
         Agent.id == agent_id,
         Agent.user_id == user_id
     ).first()
-
     if not agent:
         raise HTTPException(403, "Agent does not belong to user")
 
-    # validate page ownership (optional)
     if page_id:
         page = db.query(SavedPage).filter(
             SavedPage.id == page_id,
             SavedPage.agent_id == agent_id,
             SavedPage.user_id == user_id
         ).first()
-
         if not page:
             raise HTTPException(403, "Page does not belong to agent")
 
@@ -68,19 +61,16 @@ def create_chat(
 # ---------------------------------------------------
 # Get chats for agent
 # ---------------------------------------------------
-@router.get("/chats/{agent_id}")
+@router.get("/chats/{agent_id}/{user_id}")
 def get_chats(
     agent_id: str,
     user_id: str,
     db: Session = Depends(get_db)
 ):
-
-    # validate ownership
     agent = db.query(Agent).filter(
         Agent.id == agent_id,
         Agent.user_id == user_id
     ).first()
-
     if not agent:
         raise HTTPException(403, "Agent not found")
 
@@ -101,17 +91,13 @@ def get_messages(
     user_id: str,
     db: Session = Depends(get_db)
 ):
-
     chat = db.query(Chat).filter(
         Chat.id == chat_id,
         Chat.user_id == user_id
     ).first()
-
     if not chat:
         raise HTTPException(403, "Chat not found")
 
     messages = db.query(Message).filter(
         Message.chat_id == chat_id
     ).order_by(Message.created_at.asc()).all()
-
-    return messages
