@@ -63,13 +63,15 @@ def stream_generate_response(
         Agent.user_id == user_id
     ).first()
 
+    print("Agent Type===>",agent.type)
+
     if not agent:
         raise Exception("Agent not found")
 
 
     history = get_chat_history(db, chat_id)
 
-
+    print(history)
     if agent.type == "general":
 
         prompt = f"""
@@ -92,12 +94,14 @@ def stream_generate_response(
         question
     )
 
-
+    print (rewrite_query)
     retriever = build_retriever(
         user_id,
         agent_id,
         page_id
     )
+
+    print(retriever)
 
     docs = retriever.invoke(rewritten_query)
 

@@ -15,8 +15,6 @@ def build_retriever(user_id, agent_id, page_id=None):
 
     vectorstore = get_vectorstore()
 
-    # Chroma requires multiple conditions wrapped in $and
-    # and each value must use an explicit operator like $eq
     conditions = [
         {"user_id": {"$eq": user_id}},
         {"agent_id": {"$eq": agent_id}},

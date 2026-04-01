@@ -1,23 +1,18 @@
 import { Box, Button } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-
+import { useChats } from "../../hooks/useChats";
+ 
 export default function NewChatButton() {
-  const handleNewChat = () => {
-    console.log("Create new chat");
-  };
-
+  const { startNewChat, isStreaming } = useChats();
+ 
   return (
-    <Box
-      sx={{
-        p: 1.5,
-        borderTop: "1px solid #1e1e27",
-      }}
-    >
+    <Box sx={{ p: 1.5, borderTop: "1px solid #1e1e27" }}>
       <Button
         fullWidth
         variant="outlined"
+        disabled={isStreaming}
         startIcon={<AddIcon sx={{ fontSize: "16px !important" }} />}
-        onClick={handleNewChat}
+        onClick={startNewChat}
         sx={{
           fontFamily: "'Syne', sans-serif",
           fontWeight: 600,
@@ -35,6 +30,10 @@ export default function NewChatButton() {
             color: "#00d4ff",
             backgroundColor: "rgba(0,212,255,0.06)",
             boxShadow: "0 0 16px rgba(0,212,255,0.1)",
+          },
+          "&.Mui-disabled": {
+            borderColor: "#1e1e27",
+            color: "#3a3a50",
           },
         }}
       >

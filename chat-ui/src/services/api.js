@@ -3,13 +3,14 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  // Build config cleanly — do NOT spread options into config or the raw
+  // options.body object overwrites the serialised config.body string.
   const config = {
     method: options.method || "GET",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
-    ...options,
   };
 
   if (options.body) {
@@ -27,11 +28,8 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 export const UserAPI = {
-  createUser: (userId) =>
-    apiRequest(`/users`, {
-      method: "POST",
-      body: { id: userId },
-    }),
+  // Backend POST /users takes no body — it generates its own UUID.
+  createUser: () => apiRequest(`/users`, { method: "POST" }),
 
   getUser: (userId) => apiRequest(`/users/${userId}`),
 };
@@ -40,20 +38,10 @@ export const AgentAPI = {
   getAgents: (userId) => apiRequest(`/agents/${userId}`),
 
   createAgent: (data) =>
-    apiRequest(`/agents`, {
-      method: "POST",
-      body: data,
-    }),
-};
+    apiRequest(`/agents`, { method: "POST", body: data }),
 
-export const PageAPI = {
-  getPagesByAgent: (agentId) => apiRequest(`/agents/${agentId}/pages`),
-
-  ingestPage: (data) =>
-    apiRequest(`/ingest_page`, {
-      method: "POST",
-      body: data,
-    }),
+  // Backend route is /agents/{agent_id}/urls (not /pages)
+  getAgentUrls: (agentId) => apiRequest(`/agents/${agentId}/urls`),
 };
 
 export const ChatAPI = {
@@ -61,28 +49,14 @@ export const ChatAPI = {
     apiRequest(`/chats/${agentId}/${userId}`),
 
   createChat: (data) =>
-    apiRequest(`/chats`, {
-      method: "POST",
-      body: data,
-    }),
+    apiRequest(`/chats`, { method: "POST", body: data }),
 };
 
 export const MessageAPI = {
-  // Backend requires userId as a query param: GET /messages/{chat_id}?user_id=...
+  // GET /messages/{chat_id}?user_id=...
   getMessages: (chatId, userId) =>
     apiRequest(`/messages/${chatId}?user_id=${userId}`),
-
-  createMessage: (data) =>
-    apiRequest(`/messages`, {
-      method: "POST",
-      body: data,
-    }),
 };
 
-export const QueryAPI = {
-  query: (data) =>
-    apiRequest(`/query`, {
-      method: "POST",
-      body: data,
-    }),
-};
+// Note: streaming queries are done directly with fetch() in useMessages.js
+// because apiRequest() calls response.json() and can't handle streams.

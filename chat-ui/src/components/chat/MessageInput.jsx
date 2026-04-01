@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { Box, TextField, IconButton, Paper } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import { MessageAPI } from "../../services/api";
 
-export default function MessageInput({ onSend }) {
+export default function MessageInput({ onSend, isStreaming }) {
   const [message, setMessage] = useState("");
 
   const handleSend = () => {
-    console.log("Trying to send", message);
-    if (!message.trim()) return;
+    if (!message.trim() || isStreaming) return;
     if (onSend) onSend(message);
     setMessage("");
   };
@@ -22,6 +19,7 @@ export default function MessageInput({ onSend }) {
   };
 
   const hasContent = message.trim().length > 0;
+  const canSend = hasContent && !isStreaming;
 
   return (
     <Box
@@ -40,11 +38,11 @@ export default function MessageInput({ onSend }) {
           padding: "10px 10px 10px 16px",
           borderRadius: "12px",
           backgroundColor: "#141418",
-          border: "1px solid #2a2a35",
+          border: `1px solid ${isStreaming ? "#2a2a35" : "#2a2a35"}`,
           transition: "border-color 0.2s, box-shadow 0.2s",
           "&:focus-within": {
-            borderColor: "#00d4ff",
-            boxShadow: "0 0 0 3px rgba(0,212,255,0.06)",
+            borderColor: isStreaming ? "#2a2a35" : "#00d4ff",
+            boxShadow: isStreaming ? "none" : "0 0 0 3px rgba(0,212,255,0.06)",
           },
         }}
       >
@@ -52,11 +50,12 @@ export default function MessageInput({ onSend }) {
           fullWidth
           multiline
           maxRows={7}
-          placeholder="Send a message..."
+          placeholder={isStreaming ? "Waiting for response..." : "Send a message..."}
           variant="standard"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={isStreaming}
           InputProps={{ disableUnderline: true }}
           sx={{
             mr: 1,
@@ -71,23 +70,26 @@ export default function MessageInput({ onSend }) {
               opacity: 1,
               fontFamily: "'Syne', sans-serif",
             },
+            "& .MuiInputBase-input.Mui-disabled": {
+              WebkitTextFillColor: "#4a4a60",
+            },
           }}
         />
         <IconButton
           onClick={handleSend}
-          disabled={!hasContent}
+          disabled={!canSend}
           sx={{
             width: 36,
             height: 36,
             borderRadius: "8px",
-            backgroundColor: hasContent ? "#00d4ff" : "#1a1a22",
-            border: `1px solid ${hasContent ? "#00d4ff" : "#2a2a35"}`,
-            color: hasContent ? "#0e0e11" : "#3a3a50",
+            backgroundColor: canSend ? "#00d4ff" : "#1a1a22",
+            border: `1px solid ${canSend ? "#00d4ff" : "#2a2a35"}`,
+            color: canSend ? "#0e0e11" : "#3a3a50",
             transition: "all 0.2s",
             flexShrink: 0,
             "&:hover": {
-              backgroundColor: hasContent ? "#33ddff" : "#1f1f28",
-              boxShadow: hasContent ? "0 0 16px rgba(0,212,255,0.3)" : "none",
+              backgroundColor: canSend ? "#33ddff" : "#1f1f28",
+              boxShadow: canSend ? "0 0 16px rgba(0,212,255,0.3)" : "none",
             },
             "&.Mui-disabled": {
               backgroundColor: "#141418",
@@ -110,7 +112,7 @@ export default function MessageInput({ onSend }) {
           letterSpacing: "0.03em",
         }}
       >
-        Enter to send · Shift+Enter for new line
+        {isStreaming ? "generating response..." : "Enter to send · Shift+Enter for new line"}
       </Box>
     </Box>
   );

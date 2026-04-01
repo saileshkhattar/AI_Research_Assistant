@@ -1,9 +1,6 @@
 import { ChatContext } from "./ChatContext";
-
-import { useState, useEffect } from "react";
-
+import { useState, useEffect, useCallback } from "react";
 import { chromeStorage } from "../../services/chromeStorage.js";
-
 import { ChatAPI, MessageAPI } from "../../services/api.js";
 import { useAgentContext } from "../Agent/useAgentContext.js";
 
@@ -13,59 +10,57 @@ export function ChatProvider({ children }) {
   const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
 
+  // Reload chats whenever the active agent changes, and clear previous state
   useEffect(() => {
-    if (!activeAgentId) return;
+    if (!activeAgentId || !userId) return;
+
+    setIsLoaded(false);
+    setChats([]);
+    setMessages([]);
+    setActiveChatId(null);
 
     const loadChats = async () => {
       try {
-        const backendChats = await ChatAPI.getChatsByAgent(
-          activeAgentId,
-          userId,
-        );
-
+        const backendChats = await ChatAPI.getChatsByAgent(activeAgentId, userId);
         setChats(backendChats);
 
         const result = await chromeStorage.get(["activeChatId"]);
         const storedChatId = result.activeChatId;
 
+        // Restore stored chat only if it belongs to the current agent
         const chatId =
           storedChatId && backendChats.find((c) => c.id === storedChatId)
             ? storedChatId
-            : backendChats[0]?.id;
+            : backendChats[0]?.id ?? null;
 
-        if (chatId) {
-          setActiveChatId(chatId);
-          await chromeStorage.set({ activeChatId: chatId });
-        }
-
-        setIsLoaded(true);
+        setActiveChatId(chatId);
+        if (chatId) await chromeStorage.set({ activeChatId: chatId });
       } catch (err) {
         console.error("Failed loading chats:", err);
+      } finally {
+        setIsLoaded(true);
       }
     };
 
     loadChats();
   }, [activeAgentId, userId]);
 
-  /*
-    Load messages from backend — passes userId for ownership check
-  */
+  // Load messages when switching chats
   useEffect(() => {
-    if (!activeChatId || !userId) return;
+    if (!activeChatId || !userId) {
+      setMessages([]);
+      return;
+    }
 
     const loadMessages = async () => {
       try {
-        const backendMessages = await MessageAPI.getMessages(
-          activeChatId,
-          userId,
-        );
-
+        const backendMessages = await MessageAPI.getMessages(activeChatId, userId);
         const normalised = backendMessages.map((m) => ({
           ...m,
           id: m.id ?? `loaded-${m.role}-${m.created_at}`,
         }));
-
         setMessages(normalised);
       } catch (err) {
         console.error("Failed loading messages:", err);
@@ -75,40 +70,34 @@ export function ChatProvider({ children }) {
     loadMessages();
   }, [activeChatId, userId]);
 
-  /*
-    Set active chat — clears messages so stale messages don't flash
-  */
+  // Switch to an existing chat — clear messages first to prevent flashing
   const setActiveChat = async (chatId) => {
     setMessages([]);
     setActiveChatId(chatId);
-
     await chromeStorage.set({ activeChatId: chatId });
   };
 
-  /*
-    Called by useMessages after backend auto-creates a new chat.
-    Saves the returned chat_id and adds the chat to the sidebar list.
-  */
-  const onChatCreated = async (chat) => {
-    setChats((prev) => [chat, ...prev]);
-    setActiveChatId(chat.id);
-    await chromeStorage.set({ activeChatId: chat.id });
-  };
+  // Called by useMessages when the backend auto-creates a new chat.
+  // Receives the raw chat_id string from the X-Chat-Id response header.
+  const onChatCreated = useCallback(async (chatId) => {
+    const newChat = {
+      id: chatId,
+      title: "New Chat",
+      agent_id: activeAgentId,
+      user_id: userId,
+    };
+    setChats((prev) => [newChat, ...prev]);
+    setActiveChatId(chatId);
+    await chromeStorage.set({ activeChatId: chatId });
+  }, [activeAgentId, userId]);
 
-  /*
-    Start a brand new chat — clears messages and activeChatId.
-    The next sendMessage will hit backend with chat_id: null
-    and backend will auto-create one, returning it via X-Chat-Id header.
-  */
+  // Clear active chat — next sendMessage will auto-create a new one
   const startNewChat = async () => {
     setMessages([]);
     setActiveChatId(null);
     await chromeStorage.remove("activeChatId");
   };
 
-  /*
-    Add a chat locally (e.g. optimistic insert before backend confirms)
-  */
   const addChat = (chat) => {
     setChats((prev) => [chat, ...prev]);
   };
@@ -121,12 +110,16 @@ export function ChatProvider({ children }) {
         addChat,
 
         activeChatId,
+        setActiveChatId, // exposed so useMessages can call it
         setActiveChat,
         onChatCreated,
         startNewChat,
 
         messages,
         setMessages,
+
+        isStreaming,
+        setIsStreaming,
 
         isLoaded,
       }}

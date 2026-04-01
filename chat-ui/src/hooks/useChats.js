@@ -5,15 +5,13 @@ export function useChats() {
     chats,
     setChats,
     addChat,
-
     activeChatId,
     setActiveChat,
     onChatCreated,
     startNewChat,
-
     messages,
     setMessages,
-
+    isStreaming,
     isLoaded,
   } = useChatContext();
 
@@ -21,15 +19,13 @@ export function useChats() {
     chats,
     setChats,
     addChat,
-
     activeChatId,
     setActiveChat,
     onChatCreated,
     startNewChat,
-
     messages,
     setMessages,
-
+    isStreaming,
     isLoaded,
   };
 }
