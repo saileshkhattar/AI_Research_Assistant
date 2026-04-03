@@ -33,8 +33,8 @@ export default function MessageList() {
       <Box sx={{ height: "100%", overflowY: "auto", p: 3 }}>
         {[1, 2, 3].map((i) => (
           <Box key={i} sx={{ display: "flex", gap: 1.5, mb: 2.5, flexDirection: i % 2 === 0 ? "row-reverse" : "row" }}>
-            <Skeleton variant="rounded" width={30} height={30} sx={{ bgcolor: "#1a1a20", flexShrink: 0, borderRadius: "8px" }} />
-            <Skeleton variant="rounded" width={i % 2 === 0 ? "55%" : "70%"} height={56} sx={{ bgcolor: "#1a1a20", borderRadius: "12px" }} />
+            <Skeleton variant="rounded" width={30} height={30} sx={{ bgcolor: "#22252e", flexShrink: 0, borderRadius: "8px" }} />
+            <Skeleton variant="rounded" width={i % 2 === 0 ? "55%" : "70%"} height={56} sx={{ bgcolor: "#22252e", borderRadius: "12px" }} />
           </Box>
         ))}
       </Box>
@@ -51,7 +51,7 @@ export default function MessageList() {
         flexDirection: "column",
         "&::-webkit-scrollbar": { width: "4px" },
         "&::-webkit-scrollbar-track": { background: "transparent" },
-        "&::-webkit-scrollbar-thumb": { background: "#2a2a35", borderRadius: "2px" },
+        "&::-webkit-scrollbar-thumb": { background: "#3a3f4b", borderRadius: "2px" },
       }}
     >
       {messages.length === 0 && !isStreaming && (
@@ -70,13 +70,13 @@ export default function MessageList() {
           <Box
             sx={{
               width: 40, height: 40, borderRadius: "50%",
-              border: "1px solid #2a2a35",
+              border: "1px solid #3a3f4b",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#2a2a35" }} />
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#3a3f4b" }} />
           </Box>
-          <Box sx={{ fontFamily: "'Syne', sans-serif", fontSize: "0.85rem", color: "#4a4a60", letterSpacing: "0.06em" }}>
+          <Box sx={{ fontFamily: "'Syne', sans-serif", fontSize: "0.85rem", color: "#7a8090", letterSpacing: "0.06em" }}>
             {activeChatId ? "No messages yet" : "Start a conversation"}
           </Box>
         </Box>

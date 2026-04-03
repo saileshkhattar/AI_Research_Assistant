@@ -15,10 +15,10 @@ function App() {
           alignItems: "center",
           justifyContent: "center",
           height: "100vh",
-          backgroundColor: "#0e0e11",
+          backgroundColor: "#0f1115",
           fontFamily: "'DM Mono', monospace",
           fontSize: "0.75rem",
-          color: "#4a4a60",
+          color: "#7a8090",
           letterSpacing: "0.08em",
         }}
       >

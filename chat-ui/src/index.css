@@ -1,22 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-base: #0e0e11;
-  --bg-surface: #141418;
-  --bg-elevated: #1a1a20;
-  --bg-hover: #1f1f28;
-  --border: #2a2a35;
-  --border-subtle: #1e1e27;
+  --bg-base: #0f1115;
+  --bg-surface: #181a20;
+  --bg-elevated: #22252e;
+  --bg-hover: #2a2e3a;
+
+  --border: #3a3f4b;
+  --border-subtle: #2a2f3a;
+
   --accent: #00d4ff;
-  --accent-dim: rgba(0, 212, 255, 0.12);
-  --accent-glow: rgba(0, 212, 255, 0.25);
-  --text-primary: #e8e8f0;
-  --text-secondary: #7a7a90;
-  --text-muted: #4a4a60;
-  --user-bubble: #1a3a5c;
-  --user-bubble-border: #1e5080;
-  --assistant-bubble: #16161e;
-  --assistant-bubble-border: #2a2a35;
+  --accent-dim: rgba(0, 212, 255, 0.15);
+  --accent-glow: rgba(0, 212, 255, 0.35);
+
+  --text-primary: #f5f7ff;
+  --text-secondary: #b0b6c3;
+  --text-muted: #7a8090;
+
+  --user-bubble: #1e3a5f;
+  --user-bubble-border: #2a6fb0;
+
+  --assistant-bubble: #1a1d25;
+  --assistant-bubble-border: #343a46;
 
   font-family: 'Syne', sans-serif;
   line-height: 1.5;

@@ -35,7 +35,7 @@ export default function ChatList() {
         sx={{
           px: 1, mb: 0.5, display: "block",
           fontSize: "0.65rem", letterSpacing: "0.12em",
-          color: "#4a4a60", fontFamily: "'Syne', sans-serif", fontWeight: 600,
+          color: "#7a8090", fontFamily: "'Syne', sans-serif", fontWeight: 600,
         }}
       >
         Chats
@@ -45,7 +45,7 @@ export default function ChatList() {
       {!isLoaded && (
         <Box sx={{ px: 1 }}>
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ mb: 0.5, bgcolor: "#1a1a20" }} />
+            <Skeleton key={i} variant="rounded" height={36} sx={{ mb: 0.5, bgcolor: "#22252e" }} />
           ))}
         </Box>
       )}
@@ -70,7 +70,7 @@ export default function ChatList() {
                 borderRadius: "6px",
                 mb: 0.25, py: 0.75, px: 1, gap: 1,
                 transition: "all 0.15s",
-                "&:hover": { backgroundColor: "#1a1a20", "& .chat-title": { color: "#e8e8f0" } },
+                "&:hover": { backgroundColor: "#22252e", "& .chat-title": { color: "#f5f7ff" } },
                 "&.Mui-selected": {
                   backgroundColor: "rgba(0,212,255,0.08)",
                   borderLeft: "2px solid #00d4ff",
@@ -84,7 +84,7 @@ export default function ChatList() {
               <ChatBubbleOutlineIcon
                 sx={{
                   fontSize: 13,
-                  color: isActive ? "#00d4ff" : "#4a4a60",
+                  color: isActive ? "#00d4ff" : "#7a8090",
                   flexShrink: 0,
                   transition: "color 0.15s",
                 }}
@@ -99,7 +99,7 @@ export default function ChatList() {
                     fontFamily: "'Syne', sans-serif",
                     fontSize: "0.82rem",
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? "#00d4ff" : "#7a7a90",
+                    color: isActive ? "#00d4ff" : "#b0b6c3",
                     transition: "color 0.15s",
                   },
                 }}

@@ -11,10 +11,15 @@ export function useMessages() {
   } = useChatContext();
   const { userId, activeAgentId } = useAgentContext();
 
-  const sendMessage = async (chatId, text) => {
-    if (isStreaming) return; // prevent double-send during stream
+  /**
+   * Send a message and stream the response.
+   * @param {string|null} chatId   - existing chat ID, or null to auto-create
+   * @param {string}      text     - the user's message
+   * @param {string|null} pageId   - page scope (required for inbox chats)
+   */
+  const sendMessage = async (chatId, text, pageId = null) => {
+    if (isStreaming) return;
 
-    // Optimistic user message
     const userMessage = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -22,7 +27,6 @@ export function useMessages() {
     };
     setMessages((prev) => [...prev, userMessage]);
 
-    // Placeholder assistant bubble — content filled in by streaming
     const assistantId = `assistant-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
@@ -36,36 +40,32 @@ export function useMessages() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: userId,
+          user_id:  userId,
           agent_id: activeAgentId,
-          chat_id: chatId || null,
+          chat_id:  chatId  || null,
           question: text,
-          page_id: null,
+          page_id:  pageId  || null,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || `Server error ${response.status}`);
       }
 
-      // If the backend auto-created a new chat, add it to the sidebar
       const returnedChatId = response.headers.get("X-Chat-Id");
       if (returnedChatId && !chatId) {
         await onChatCreated(returnedChatId);
       }
 
-      // Stream tokens into the assistant bubble
-      const reader = response.body.getReader();
+      const reader  = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-
+        accumulated += decoder.decode(value, { stream: true });
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantId
@@ -75,18 +75,18 @@ export function useMessages() {
         );
       }
 
-      // Mark streaming done on the assistant message
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantId ? { ...msg, streaming: false } : msg
         )
       );
+
     } catch (err) {
       console.error("Streaming error:", err);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantId
-            ? { ...msg, content: "Something went wrong. Please try again.", streaming: false }
+            ? { ...msg, content: err.message || "Something went wrong. Please try again.", streaming: false }
             : msg
         )
       );
@@ -95,9 +95,5 @@ export function useMessages() {
     }
   };
 
-  return {
-    messages,
-    sendMessage,
-    isStreaming,
-  };
+  return { messages, sendMessage, isStreaming };
 }

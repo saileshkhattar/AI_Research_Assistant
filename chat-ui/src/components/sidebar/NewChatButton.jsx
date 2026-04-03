@@ -6,7 +6,7 @@ export default function NewChatButton() {
   const { startNewChat, isStreaming } = useChats();
  
   return (
-    <Box sx={{ p: 1.5, borderTop: "1px solid #1e1e27" }}>
+    <Box sx={{ p: 1.5, borderTop: "1px solid #2a2f3a" }}>
       <Button
         fullWidth
         variant="outlined"
@@ -21,8 +21,8 @@ export default function NewChatButton() {
           textTransform: "uppercase",
           borderRadius: "8px",
           py: 1,
-          borderColor: "#2a2a35",
-          color: "#7a7a90",
+          borderColor: "#3a3f4b",
+          color: "#b0b6c3",
           backgroundColor: "transparent",
           transition: "all 0.2s",
           "&:hover": {
@@ -32,7 +32,7 @@ export default function NewChatButton() {
             boxShadow: "0 0 16px rgba(0,212,255,0.1)",
           },
           "&.Mui-disabled": {
-            borderColor: "#1e1e27",
+            borderColor: "#2a2f3a",
             color: "#3a3a50",
           },
         }}

@@ -1,26 +1,31 @@
 import { useState } from "react";
 import { Box, TextField, IconButton, Paper } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-
-export default function MessageInput({ onSend, isStreaming }) {
+ 
+export default function MessageInput({ onSend, isStreaming, disabled = false, placeholder }) {
   const [message, setMessage] = useState("");
-
+ 
+  const isDisabled = isStreaming || disabled;
+ 
   const handleSend = () => {
-    if (!message.trim() || isStreaming) return;
+    if (!message.trim() || isDisabled) return;
     if (onSend) onSend(message);
     setMessage("");
   };
-
+ 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
-  const hasContent = message.trim().length > 0;
-  const canSend = hasContent && !isStreaming;
-
+ 
+  const canSend = message.trim().length > 0 && !isDisabled;
+ 
+  const resolvedPlaceholder =
+    placeholder ||
+    (isStreaming ? "Waiting for response…" : "Send a message…");
+ 
   return (
     <Box
       sx={{
@@ -38,11 +43,11 @@ export default function MessageInput({ onSend, isStreaming }) {
           padding: "10px 10px 10px 16px",
           borderRadius: "12px",
           backgroundColor: "#141418",
-          border: `1px solid ${isStreaming ? "#2a2a35" : "#2a2a35"}`,
+          border: `1px solid ${isDisabled ? "#1e1e27" : "#2a2a35"}`,
           transition: "border-color 0.2s, box-shadow 0.2s",
           "&:focus-within": {
-            borderColor: isStreaming ? "#2a2a35" : "#00d4ff",
-            boxShadow: isStreaming ? "none" : "0 0 0 3px rgba(0,212,255,0.06)",
+            borderColor: isDisabled ? "#1e1e27" : "#00d4ff",
+            boxShadow: isDisabled ? "none" : "0 0 0 3px rgba(0,212,255,0.06)",
           },
         }}
       >
@@ -50,12 +55,12 @@ export default function MessageInput({ onSend, isStreaming }) {
           fullWidth
           multiline
           maxRows={7}
-          placeholder={isStreaming ? "Waiting for response..." : "Send a message..."}
+          placeholder={resolvedPlaceholder}
           variant="standard"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isStreaming}
+          disabled={isDisabled}
           InputProps={{ disableUnderline: true }}
           sx={{
             mr: 1,
@@ -71,7 +76,7 @@ export default function MessageInput({ onSend, isStreaming }) {
               fontFamily: "'Syne', sans-serif",
             },
             "& .MuiInputBase-input.Mui-disabled": {
-              WebkitTextFillColor: "#4a4a60",
+              WebkitTextFillColor: "#3a3a50",
             },
           }}
         />
@@ -101,7 +106,7 @@ export default function MessageInput({ onSend, isStreaming }) {
           <ArrowUpwardIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </Paper>
-
+ 
       <Box
         sx={{
           mt: 1,
@@ -112,7 +117,7 @@ export default function MessageInput({ onSend, isStreaming }) {
           letterSpacing: "0.03em",
         }}
       >
-        {isStreaming ? "generating response..." : "Enter to send · Shift+Enter for new line"}
+        {isStreaming ? "generating response…" : "Enter to send · Shift+Enter for new line"}
       </Box>
     </Box>
   );

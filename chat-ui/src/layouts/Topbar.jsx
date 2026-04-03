@@ -7,11 +7,11 @@ export default function Topbar() {
     <Box
       sx={{
         height: 60,
-        borderBottom: "1px solid #1e1e27",
+        borderBottom: "1px solid #2a2f3a",
         display: "flex",
         alignItems: "center",
         px: 3,
-        backgroundColor: "#0e0e11",
+        backgroundColor: "#0f1115",
         gap: 2,
         flexShrink: 0,
         position: "relative",

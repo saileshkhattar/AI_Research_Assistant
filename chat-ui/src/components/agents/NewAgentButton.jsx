@@ -63,7 +63,7 @@ export default function NewAgentButton() {
 
   return (
     <>
-      <Box sx={{ p: 1.5, borderTop: "1px solid #1e1e27" }}>
+      <Box sx={{ p: 1.5, borderTop: "1px solid #2a2f3a" }}>
         <Button
           fullWidth
           variant="outlined"
@@ -77,8 +77,8 @@ export default function NewAgentButton() {
             textTransform: "uppercase",
             borderRadius: "8px",
             py: 1,
-            borderColor: "#2a2a35",
-            color: "#7a7a90",
+            borderColor: "#3a3f4b",
+            color: "#b0b6c3",
             backgroundColor: "transparent",
             transition: "all 0.2s",
             "&:hover": {
@@ -99,7 +99,7 @@ export default function NewAgentButton() {
         PaperProps={{
           sx: {
             backgroundColor: "#13131a",
-            border: "1px solid #2a2a35",
+            border: "1px solid #3a3f4b",
             borderRadius: "14px",
             boxShadow: "0 24px 80px rgba(0,0,0,0.7), 0 0 40px rgba(0,212,255,0.05)",
             width: "100%",
@@ -114,7 +114,7 @@ export default function NewAgentButton() {
           <Box
             sx={{
               px: 3, pt: 3, pb: 2.5,
-              borderBottom: "1px solid #1e1e27",
+              borderBottom: "1px solid #2a2f3a",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -132,10 +132,10 @@ export default function NewAgentButton() {
                 <AutoAwesomeIcon sx={{ fontSize: 16, color: "#00d4ff" }} />
               </Box>
               <Box>
-                <Typography sx={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "0.95rem", color: "#e8e8f0", lineHeight: 1.2 }}>
+                <Typography sx={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "0.95rem", color: "#f5f7ff", lineHeight: 1.2 }}>
                   New Agent
                 </Typography>
-                <Typography sx={{ fontFamily: "'DM Mono', monospace", fontSize: "0.68rem", color: "#4a4a60", lineHeight: 1.2, mt: 0.5 }}>
+                <Typography sx={{ fontFamily: "'DM Mono', monospace", fontSize: "0.68rem", color: "#7a8090", lineHeight: 1.2, mt: 0.5 }}>
                   Configure and deploy
                 </Typography>
               </Box>
@@ -143,14 +143,14 @@ export default function NewAgentButton() {
             <IconButton
               onClick={handleClose}
               disabled={loading}
-              sx={{ color: "#4a4a60", width: 30, height: 30, borderRadius: "7px", "&:hover": { color: "#e8e8f0", backgroundColor: "#1f1f28" } }}
+              sx={{ color: "#7a8090", width: 30, height: 30, borderRadius: "7px", "&:hover": { color: "#f5f7ff", backgroundColor: "#2a2e3a" } }}
             >
               <CloseIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Box>
 
           <Box sx={{ px: 3, pt: 2.5, pb: 3 }}>
-            <Typography sx={{ fontFamily: "'Syne', sans-serif", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#4a4a60", mb: 1 }}>
+            <Typography sx={{ fontFamily: "'Syne', sans-serif", fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#7a8090", mb: 1 }}>
               Agent Name
             </Typography>
 
@@ -165,9 +165,9 @@ export default function NewAgentButton() {
               disabled={loading}
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  backgroundColor: "#0e0e11", borderRadius: "9px",
-                  fontFamily: "'Syne', sans-serif", fontSize: "0.9rem", color: "#e8e8f0",
-                  "& fieldset": { borderColor: "#2a2a35" },
+                  backgroundColor: "#0f1115", borderRadius: "9px",
+                  fontFamily: "'Syne', sans-serif", fontSize: "0.9rem", color: "#f5f7ff",
+                  "& fieldset": { borderColor: "#3a3f4b" },
                   "&:hover fieldset": { borderColor: "#3a3a50" },
                   "&.Mui-focused fieldset": { borderColor: "#00d4ff", boxShadow: "0 0 0 3px rgba(0,212,255,0.07)" },
                   "&.Mui-error fieldset": { borderColor: "#ff4d6d" },
@@ -189,9 +189,9 @@ export default function NewAgentButton() {
                 sx={{
                   fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: "0.78rem",
                   letterSpacing: "0.05em", textTransform: "uppercase", borderRadius: "8px", py: 1.1,
-                  borderColor: "#2a2a35", color: "#7a7a90", backgroundColor: "transparent",
-                  "&:hover": { borderColor: "#3a3a50", color: "#e8e8f0", backgroundColor: "#1a1a20" },
-                  "&.Mui-disabled": { borderColor: "#1e1e27", color: "#3a3a50" },
+                  borderColor: "#3a3f4b", color: "#b0b6c3", backgroundColor: "transparent",
+                  "&:hover": { borderColor: "#3a3a50", color: "#f5f7ff", backgroundColor: "#22252e" },
+                  "&.Mui-disabled": { borderColor: "#2a2f3a", color: "#3a3a50" },
                 }}
               >
                 Cancel
@@ -200,11 +200,11 @@ export default function NewAgentButton() {
                 fullWidth variant="contained"
                 onClick={handleCreate}
                 disabled={loading || !agentName.trim()}
-                startIcon={loading ? <CircularProgress size={14} sx={{ color: "#0e0e11" }} /> : <AddIcon sx={{ fontSize: "16px !important" }} />}
+                startIcon={loading ? <CircularProgress size={14} sx={{ color: "#0f1115" }} /> : <AddIcon sx={{ fontSize: "16px !important" }} />}
                 sx={{
                   fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "0.78rem",
                   letterSpacing: "0.05em", textTransform: "uppercase", borderRadius: "8px", py: 1.1,
-                  backgroundColor: "#00d4ff", color: "#0e0e11", boxShadow: "none",
+                  backgroundColor: "#00d4ff", color: "#0f1115", boxShadow: "none",
                   "&:hover": { backgroundColor: "#33ddff", boxShadow: "0 0 20px rgba(0,212,255,0.3)" },
                   "&.Mui-disabled": { backgroundColor: "#1a1a22", color: "#3a3a50", boxShadow: "none" },
                 }}

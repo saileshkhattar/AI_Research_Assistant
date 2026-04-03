@@ -14,18 +14,18 @@ export default function Sidebar() {
         display: "flex",
         flexDirection: "column",
         backgroundColor: "#0a0a0d",
-        borderRight: "1px solid #1e1e27",
+        borderRight: "1px solid #2a2f3a",
         height: "100vh",
         overflow: "hidden",
       }}
     >
       {/* Agent selector */}
-      <Box sx={{ p: 1.5, borderBottom: "1px solid #1e1e27" }}>
+      <Box sx={{ p: 1.5, borderBottom: "1px solid #2a2f3a" }}>
         <AgentDropdown />
       </Box>
 
       {/* Saved pages for this agent */}
-      <Box sx={{ borderBottom: "1px solid #1e1e27" }}>
+      <Box sx={{ borderBottom: "1px solid #2a2f3a" }}>
         <PageList />
       </Box>
 

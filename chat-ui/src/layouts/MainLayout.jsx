@@ -6,7 +6,7 @@ export default function MainLayout({ children }) {
     <Box
       display="flex"
       height="100vh"
-      sx={{ backgroundColor: "#0e0e11", overflow: "hidden" }}
+      sx={{ backgroundColor: "#0f1115", overflow: "hidden" }}
     >
       <Sidebar />
       <Box flex={1} sx={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
