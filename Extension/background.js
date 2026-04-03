@@ -1,38 +1,50 @@
 const API_BASE = "http://127.0.0.1:8000";
 
-let initPromise = null;
+// ─────────────────────────────────────────────
+// STORAGE KEY CONSTANTS
+// Single source of truth — popup.js imports these same names
+// ─────────────────────────────────────────────
+const KEYS = {
+  USER_ID:        "userId",
+  AGENTS:         "agents",
+  ACTIVE_AGENT_ID: "activeAgentId",   // FIX: was mixed "activeAgent" / "activeAgentId"
+  INBOX_AGENT_ID:  "inboxAgentId",
+  GENERAL_AGENT_ID:"generalAgentId",
+};
 
+// ─────────────────────────────────────────────
+// USER BOOTSTRAP
+// ─────────────────────────────────────────────
 async function ensureUser() {
-  const storage = await chrome.storage.local.get("userId");
-  console.log("Background.js line 10===>", storage);
+  const { userId } = await chrome.storage.local.get(KEYS.USER_ID);
 
-  if (storage.userId) {
-    //CONFIRMING THAT USER EXSTS IN BACKEND
+  if (userId) {
+    // Confirm the user still exists in the backend
     try {
-      const res = await fetch(`${API_BASE}/users/${storage.userId}`);
-      if (res.ok) {
-        return storage.userId;
-      }
-    } catch {}
+      const res = await fetch(`${API_BASE}/users/${userId}`);
+      if (res.ok) return userId;
+    } catch (_) {
+      // Backend unreachable — return cached id and retry later
+      return userId;
+    }
   }
 
-  const res = await fetch(`${API_BASE}/users`, {
-    method: "POST",
-  });
+  // Create a new user
+  const res = await fetch(`${API_BASE}/users`, { method: "POST" });
+  if (!res.ok) throw new Error(`Failed to create user: ${res.status}`);
 
-  const user = await res.json();
-
-  const userId = user.id;
-
-  await chrome.storage.local.set({ userId });
-
-  console.log("Created new user:", userId);
-
-  return userId;
+  const { id: newId } = await res.json();
+  await chrome.storage.local.set({ [KEYS.USER_ID]: newId });
+  console.log("Created new user:", newId);
+  return newId;
 }
 
+// ─────────────────────────────────────────────
+// AGENT BOOTSTRAP
+// ─────────────────────────────────────────────
 async function ensureAgents(userId) {
   const res = await fetch(`${API_BASE}/agents/${userId}`);
+  if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`);
 
   const agents = await res.json();
 
@@ -41,48 +53,44 @@ async function ensureAgents(userId) {
     return;
   }
 
-  // Save full agent list
-  await chrome.storage.local.set({ agents });
-
-  // Find default agents
-  const inbox = agents.find((a) => a.type === "system_inbox");
+  const inbox   = agents.find((a) => a.type === "system_inbox");
   const general = agents.find((a) => a.type === "general");
 
+  // Read existing active agent — preserve user's selection across reloads
+  const { activeAgentId: existing } = await chrome.storage.local.get(KEYS.ACTIVE_AGENT_ID);
+  const stillValid = existing && agents.find((a) => a.id === existing);
+
   await chrome.storage.local.set({
-    inboxAgentId: inbox?.id || null,
-
-    generalAgentId: general?.id || null,
-
-    // Set inbox as default active agent
-    activeAgentId: inbox?.id || general?.id, // FIX: was "activeAgentId", must match popup.js
+    [KEYS.AGENTS]:          agents,
+    [KEYS.INBOX_AGENT_ID]:  inbox?.id   || null,
+    [KEYS.GENERAL_AGENT_ID]:general?.id || null,
+    // Only reset active agent if the stored one is gone
+    [KEYS.ACTIVE_AGENT_ID]: stillValid
+      ? existing
+      : (inbox?.id || general?.id || agents[0]?.id),
   });
 
   console.log("Agents initialised:", agents.length);
 }
 
-// ======================================================
-// INITIALISE IDENTITY (RUNS ONLY ONCE)
-// ======================================================
+// ─────────────────────────────────────────────
+// IDENTITY INIT  (idempotent — safe to call many times)
+// ─────────────────────────────────────────────
 async function initIdentity() {
-  if (initPromise) return initPromise;
-
-  initPromise = (async () => {
+  try {
     const userId = await ensureUser();
-
     await ensureAgents(userId);
-
-    console.log("Identity fully initialised");
-  })();
-
-  return initPromise;
+    console.log("Identity ready, userId:", userId);
+  } catch (err) {
+    console.error("initIdentity failed:", err);
+  }
 }
 
-// ======================================================
-// HANDLE SAVE PAGE
-// ======================================================
+// ─────────────────────────────────────────────
+// SAVE PAGE  →  inject content script
+// ─────────────────────────────────────────────
 async function handleSavePage(tabId) {
   await initIdentity();
-
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
@@ -90,77 +98,62 @@ async function handleSavePage(tabId) {
     });
   } catch (err) {
     console.error("Script injection failed:", err);
+    // Notify popup of failure
+    chrome.runtime.sendMessage({ action: "SAVE_RESULT", ok: false, error: err.message });
   }
 }
 
-// ======================================================
-// HANDLE PAGE CAPTURED → SEND TO BACKEND
-// ======================================================
-async function handlePageCaptured(message) {
+// ─────────────────────────────────────────────
+// PAGE CAPTURED  →  ingest to backend
+// FIX: was reading "activeAgent" (undefined) — now reads "activeAgentId"
+// ─────────────────────────────────────────────
+async function handlePageCaptured({ content, title, url }) {
   await initIdentity();
 
-  const { content, title, url } = message;
+  const storage = await chrome.storage.local.get([KEYS.USER_ID, KEYS.ACTIVE_AGENT_ID]);
+  const userId  = storage[KEYS.USER_ID];
+  const agentId = storage[KEYS.ACTIVE_AGENT_ID];
 
-  const storage = await chrome.storage.local.get(["userId", "activeAgent"]);
-
-  const userId = storage.userId;
-  const agentId = storage.activeAgent;
-
-  if (!userId) {
-    console.error("No userId found");
-    return;
-  }
-
-  if (!agentId) {
-    console.error("No activeAgent found");
-    return;
-  }
+  if (!userId)  { console.error("No userId");  return; }
+  if (!agentId) { console.error("No activeAgentId"); return; }
 
   try {
-    await fetch(`${API_BASE}/ingest_page`, {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        user_id: userId,
-        agent_id: agentId,
-        url,
-        title,
-        content,
-      }),
+    const res = await fetch(`${API_BASE}/ingest_page`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, agent_id: agentId, url, title, content }),
     });
 
-    console.log("Page ingested successfully");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.detail || `HTTP ${res.status}`;
+      console.warn("Ingest response:", msg);
+      chrome.runtime.sendMessage({ action: "SAVE_RESULT", ok: false, error: msg });
+      return;
+    }
+
+    const result = await res.json();
+    console.log("Page ingested:", result);
+    chrome.runtime.sendMessage({ action: "SAVE_RESULT", ok: true, result });
+
   } catch (err) {
-    console.error("Ingest failed:", err);
+    console.error("Ingest network error:", err);
+    chrome.runtime.sendMessage({ action: "SAVE_RESULT", ok: false, error: err.message });
   }
 }
 
-// ======================================================
-// MESSAGE LISTENER
-// ======================================================
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "INIT_IDENTITY") {
-    initIdentity();
-  }
-
-  if (message.action === "Save_Page") {
-    handleSavePage(message.tabId);
-  }
-
-  if (message.action === "Page_Captured") {
-    handlePageCaptured(message);
-  }
-
-  return true;
+// ─────────────────────────────────────────────
+// MESSAGE ROUTER
+// ─────────────────────────────────────────────
+chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
+  if (message.action === "INIT_IDENTITY") initIdentity();
+  if (message.action === "Save_Page")     handleSavePage(message.tabId);
+  if (message.action === "Page_Captured") handlePageCaptured(message);
+  return true; // keep message channel open for async responses
 });
 
-// ======================================================
-// STARTUP INITIALISATION
-// ======================================================
-chrome.runtime.onInstalled.addListener(() => {
-  initIdentity();
-});
+// ─────────────────────────────────────────────
+// STARTUP
+// ─────────────────────────────────────────────
+chrome.runtime.onInstalled.addListener(() => initIdentity());
+chrome.runtime.onStartup.addListener(()    => initIdentity());

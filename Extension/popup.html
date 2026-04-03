@@ -1,141 +1,112 @@
-
-Popup · HTML
-Copy
-
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <title>Research AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap"/>
   <link rel="stylesheet" href="popup.css"/>
 </head>
 
 <body>
 <div class="container">
 
-  <!-- HEADER -->
+  <!-- ── HEADER ─────────────────────────── -->
   <header class="header">
-    <h1 class="title">Research AI</h1>
-
-    <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-label">Saved Pages</span>
-        <span id="pageCount" class="stat-value">0</span>
+    <div class="header-left">
+      <div class="logo-dot"></div>
+      <span class="app-name">Research AI</span>
+    </div>
+    <div class="stats-row">
+      <div class="stat-pill">
+        <span class="stat-val" id="pageCount">0</span>
+        <span class="stat-lbl">pages</span>
       </div>
-
-      <div class="stat-card">
-        <span class="stat-label">Active Assistant</span>
-        <span id="activeAgentLabel" class="stat-value">Inbox</span>
+      <div class="stat-pill">
+        <span class="stat-val" id="agentCount">0</span>
+        <span class="stat-lbl">agents</span>
       </div>
     </div>
   </header>
 
-
-  <!-- ASSISTANT SECTION -->
-  <div class="section">
-
-    <label>Assistant</label>
+  <!-- ── AGENT SELECTOR ────────────────── -->
+  <section class="section">
+    <div class="section-label">Assistant</div>
 
     <select id="agentSelect" class="select"></select>
+    <div id="agentHelper" class="helper-text"></div>
 
-    <div id="agentHelper" class="mode-description"></div>
-
-    <div style="display:flex; gap:8px; margin-top:10px;">
-
-      <button id="viewUrlsBtn" class="secondary-btn">
-        View URLs
+    <div class="row-btns" style="margin-top:10px;">
+      <button id="viewUrlsBtn" class="btn btn-ghost">
+        <span class="btn-icon">⊞</span> Saved Pages
       </button>
-
-      <button id="createAgentBtn" class="primary-btn">
-        + Create Assistant
+      <button id="createAgentBtn" class="btn btn-outline">
+        <span class="btn-icon">+</span> New Agent
       </button>
-
     </div>
+  </section>
 
-  </div>
-
-
-  <!-- ACTION -->
-  <div class="action-section">
-
-    <button id="savePageBtn" class="primary-btn">
-      Save Current Page
+  <!-- ── SAVE PAGE ─────────────────────── -->
+  <section class="section">
+    <div class="section-label">Current Page</div>
+    <div id="currentPageUrl" class="current-url">—</div>
+    <button id="savePageBtn" class="btn btn-accent full-width" style="margin-top:10px;">
+      Save Page to Assistant
     </button>
+    <div id="statusMessage" class="status-message"></div>
+  </section>
 
-  </div>
-
-
-  <!-- QUESTION BOX -->
-  <div class="quick-section">
-
+  <!-- ── QUICK ASK ─────────────────────── -->
+  <section class="section" style="flex:1;">
+    <div class="section-label">Quick Ask</div>
     <textarea
       id="questionBox"
-      placeholder="Ask question across this assistant..."
+      class="textarea"
+      placeholder="Ask something across this assistant's pages…"
     ></textarea>
-
-    <button id="askBtn" class="send-btn">
-      Ask Assistant
+    <button id="askBtn" class="btn btn-accent full-width" style="margin-top:8px;">
+      Open Chat
     </button>
+  </section>
 
-  </div>
-
-
-  <div id="statusMessage" class="status-message"></div>
-
-</div>
+</div><!-- /container -->
 
 
-<!-- CREATE MODAL -->
+<!-- ── CREATE AGENT MODAL ────────────── -->
 <div id="agentModal" class="modal hidden">
-
-  <div class="modal-content">
-
-    <h3>Create Assistant</h3>
-
-    <input id="agentNameInput"
-           class="modal-input"
-           placeholder="Assistant name"/>
-
-    <div class="modal-actions">
-
-      <button id="cancelCreateBtn"
-              class="secondary-btn">
-        Cancel
-      </button>
-
-      <button id="confirmCreateBtn"
-              class="primary-btn">
-        Create
-      </button>
-
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">New Agent</span>
+      <button id="cancelCreateBtn" class="modal-close">✕</button>
     </div>
-
+    <div class="modal-body">
+      <label class="field-label">Agent Name</label>
+      <input id="agentNameInput" class="input" placeholder="e.g. Research Assistant" autocomplete="off"/>
+      <div id="createError" class="error-text hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="cancelCreateBtn2" class="btn btn-ghost">Cancel</button>
+      <button id="confirmCreateBtn" class="btn btn-accent">Create</button>
+    </div>
   </div>
-
 </div>
 
 
-<!-- URL MODAL -->
+<!-- ── SAVED PAGES MODAL ─────────────── -->
 <div id="urlsModal" class="modal hidden">
-
-  <div class="modal-content">
-
-    <h3>Saved URLs</h3>
-
-    <div id="urlsList"></div>
-
-    <button id="closeUrlsBtn"
-            class="primary-btn">
-      Close
-    </button>
-
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">Saved Pages</span>
+      <button id="closeUrlsBtn" class="modal-close">✕</button>
+    </div>
+    <div id="urlsList" class="urls-list"></div>
   </div>
-
 </div>
 
 
 <script src="popup.js"></script>
-
 </body>
 </html>
 

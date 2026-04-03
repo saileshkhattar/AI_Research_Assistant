@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import Sidebar from "../components/sidebar/Sidebar";
+import Sidebar from "./Sidebar";
 
 export default function MainLayout({ children }) {
   return (

@@ -8,16 +8,20 @@ class Agent(Base):
 
     id = Column(String, primary_key=True)
 
-    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     name = Column(String)
 
+    # "general" | "knowledge" | "custom" | "system_inbox"
     type = Column(String, default="knowledge", index=True)
 
-    chats = relationship(
-        "Chat",
-        cascade="all, delete-orphan"
-    )
+    chats = relationship("Chat", cascade="all, delete-orphan")
+
+    # FIX: was missing — without this, deleting an agent leaves orphan
+    # saved_pages rows (SQLite ignores FK constraints by default)
+    saved_pages = relationship("SavedPage", cascade="all, delete-orphan")
 
     user = relationship("User")
 

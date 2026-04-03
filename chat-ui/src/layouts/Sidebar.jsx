@@ -1,9 +1,9 @@
 import { Box } from "@mui/material";
-import AgentDropdown from "./AgentDropdown";
-import NewAgentButton from "./NewAgentButton";
-import ChatList from "./ChatList";
-import NewChatButton from "./NewChatButton";
-import PageList from "./PageList";
+import AgentDropdown from "../components/agents/AgentDropdown";
+import NewAgentButton from "../components/agents/NewAgentButton";
+import ChatList from "../components/sidebar/ChatList";
+import NewChatButton from "../components/sidebar/NewChatButton";
+import PageList from "../components/sidebar/PageList";
 
 export default function Sidebar() {
   return (

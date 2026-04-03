@@ -1,221 +1,446 @@
-const API = "http://127.0.0.1:8000";
-
-const els = {
-  select: document.getElementById("agentSelect"),
-  helper: document.getElementById("agentHelper"),
-  activeLabel: document.getElementById("activeAgentLabel"),
-
-  createBtn: document.getElementById("createAgentBtn"),
-  viewUrlsBtn: document.getElementById("viewUrlsBtn"),
-
-  modal: document.getElementById("agentModal"),
-  confirmCreate: document.getElementById("confirmCreateBtn"),
-  cancelCreate: document.getElementById("cancelCreateBtn"),
-  agentNameInput: document.getElementById("agentNameInput"),
-
-  urlsModal: document.getElementById("urlsModal"),
-  urlsList: document.getElementById("urlsList"),
-  closeUrlsBtn: document.getElementById("closeUrlsBtn"),
-
-  saveBtn: document.getElementById("savePageBtn"),
-  askBtn: document.getElementById("askBtn"),
+// ─────────────────────────────────────────────────────────────
+// STORAGE KEY CONSTANTS — must match background.js exactly
+// ─────────────────────────────────────────────────────────────
+const KEYS = {
+  USER_ID:         "userId",
+  AGENTS:          "agents",
+  ACTIVE_AGENT_ID: "activeAgentId",  // FIX: was "activeAgent" in old popup — mismatched background
 };
 
-let agents = [];
-let activeAgent = null;
+const API = "http://127.0.0.1:8000";
 
+// ─────────────────────────────────────────────────────────────
+// DOM REFS
+// ─────────────────────────────────────────────────────────────
+const el = {
+  select:         document.getElementById("agentSelect"),
+  helper:         document.getElementById("agentHelper"),
+  pageCount:      document.getElementById("pageCount"),
+  agentCount:     document.getElementById("agentCount"),
+  currentPageUrl: document.getElementById("currentPageUrl"),
+
+  createBtn:      document.getElementById("createAgentBtn"),
+  viewUrlsBtn:    document.getElementById("viewUrlsBtn"),
+
+  agentModal:     document.getElementById("agentModal"),
+  confirmCreate:  document.getElementById("confirmCreateBtn"),
+  cancelCreate:   document.getElementById("cancelCreateBtn"),
+  cancelCreate2:  document.getElementById("cancelCreateBtn2"),
+  agentNameInput: document.getElementById("agentNameInput"),
+  createError:    document.getElementById("createError"),
+
+  urlsModal:      document.getElementById("urlsModal"),
+  urlsList:       document.getElementById("urlsList"),
+  closeUrls:      document.getElementById("closeUrlsBtn"),
+
+  saveBtn:        document.getElementById("savePageBtn"),
+  statusMsg:      document.getElementById("statusMessage"),
+
+  askBtn:         document.getElementById("askBtn"),        // FIX: was undeclared var
+  questionBox:    document.getElementById("questionBox"),
+};
+
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+let agents   = [];
+let userId   = null;
+let currentTab = null;
+
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
+  // Trigger background identity init
   chrome.runtime.sendMessage({ action: "INIT_IDENTITY" });
 
-  await loadAgents();
+  // Get current tab info
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  currentTab = tab;
+  if (tab?.url) {
+    el.currentPageUrl.textContent = displayUrl(tab.url);
+    el.currentPageUrl.title = tab.url;
+  }
 
+  await loadState();
   attachEvents();
+
+  // Listen for background save results
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.action === "SAVE_RESULT") handleSaveResult(msg);
+  });
 });
 
-function attachEvents() {
-  els.select.onchange = handleAgentChange;
+// ─────────────────────────────────────────────────────────────
+// LOAD STATE FROM STORAGE + BACKEND
+// ─────────────────────────────────────────────────────────────
+async function loadState() {
+  const storage = await chrome.storage.local.get([
+    KEYS.USER_ID, KEYS.AGENTS, KEYS.ACTIVE_AGENT_ID,
+  ]);
 
-  els.createBtn.onclick = () => els.modal.classList.remove("hidden");
+  userId = storage[KEYS.USER_ID] || null;
+  agents = storage[KEYS.AGENTS] || [];
 
-  els.cancelCreate.onclick = () => els.modal.classList.add("hidden");
+  // If we have agents in storage, render immediately
+  if (agents.length) {
+    renderDropdown(storage[KEYS.ACTIVE_AGENT_ID]);
+    await updatePageCount();
+  }
 
-  els.confirmCreate.onclick = createAgent;
-
-  els.viewUrlsBtn.onclick = showUrls;
-
-  els.closeUrlsBtn.onclick = () => els.urlsModal.classList.add("hidden");
-
-  els.saveBtn.onclick = savePage;
+  // Always refresh from backend for latest state
+  if (userId) {
+    await refreshAgents();
+  }
 }
 
-async function loadAgents() {
-  const storage = await chrome.storage.local.get(["agents", "activeAgent"]);
+// ─────────────────────────────────────────────────────────────
+// FETCH AGENTS FROM BACKEND AND SYNC STORAGE
+// ─────────────────────────────────────────────────────────────
+async function refreshAgents() {
+  if (!userId) return;
+  try {
+    const res = await fetch(`${API}/agents/${userId}`);
+    if (!res.ok) return;
+    agents = await res.json();
+    await chrome.storage.local.set({ [KEYS.AGENTS]: agents });
 
-  agents = storage.agents || [];
-  activeAgent = storage.activeAgent;
-
-  populateDropdown();
+    const { [KEYS.ACTIVE_AGENT_ID]: current } = await chrome.storage.local.get(KEYS.ACTIVE_AGENT_ID);
+    renderDropdown(current);
+    await updatePageCount();
+  } catch (err) {
+    console.error("refreshAgents failed:", err);
+  }
 }
 
-function populateDropdown() {
-  els.select.innerHTML = "";
+// ─────────────────────────────────────────────────────────────
+// RENDER AGENT DROPDOWN
+// ─────────────────────────────────────────────────────────────
+function renderDropdown(activeId) {
+  el.select.innerHTML = "";
 
-  const system = agents.filter(
-    (a) => a.type === "system_inbox" || a.type === "general",
-  );
-
-  const custom = agents.filter(
-    (a) => a.type !== "system_inbox" && a.type !== "general",
-  );
+  // System agents first, then custom
+  const system = agents.filter((a) => a.type === "system_inbox" || a.type === "general");
+  const custom  = agents.filter((a) => a.type !== "system_inbox" && a.type !== "general");
 
   [...system, ...custom].forEach((agent) => {
-    const option = document.createElement("option");
-
-    option.value = agent.id;
-
-    option.text = `${agent.name} (${agent.url_count || 0})`;
-
-    els.select.appendChild(option);
+    const opt = document.createElement("option");
+    opt.value = agent.id;
+    opt.text  = agent.name;
+    el.select.appendChild(opt);
   });
 
-  els.select.value = activeAgent;
+  // Pre-select stored active agent
+  if (activeId && agents.find((a) => a.id === activeId)) {
+    el.select.value = activeId;
+  } else if (agents.length) {
+    el.select.value = agents[0].id;
+    persistActiveAgent(agents[0].id);
+  }
 
+  el.agentCount.textContent = agents.length;
   updateHelper();
 }
 
+// ─────────────────────────────────────────────────────────────
+// UPDATE HELPER TEXT UNDER DROPDOWN
+// ─────────────────────────────────────────────────────────────
 function updateHelper() {
-  const agent = agents.find((a) => a.id === els.select.value);
+  const agent = agents.find((a) => a.id === el.select.value);
+  if (!agent) { el.helper.textContent = ""; return; }
 
-  if (!agent) return;
-
-  activeAgent = agent.id;
-
-  els.activeLabel.textContent = agent.name;
-
-  if (agent.type === "system_inbox")
-    els.helper.textContent = "Inbox: Best for single-page questions.";
-  else if (agent.type === "general")
-    els.helper.textContent = "General: Best for cross-page research.";
-  else els.helper.textContent = "Custom assistant for focused knowledge.";
+  const descriptions = {
+    system_inbox: "Inbox — best for single-page questions.",
+    general:      "General — best for open-ended research.",
+  };
+  el.helper.textContent = descriptions[agent.type] ?? "Custom knowledge base.";
 }
 
-async function handleAgentChange() {
-  await chrome.storage.local.set({
-    activeAgent: els.select.value,
+// ─────────────────────────────────────────────────────────────
+// UPDATE PAGE COUNT STAT (pages saved to active agent)
+// FIX: was always 0 — now fetches real count from backend
+// ─────────────────────────────────────────────────────────────
+async function updatePageCount() {
+  const agentId = el.select.value;
+  if (!agentId) return;
+  try {
+    const res = await fetch(`${API}/agents/${agentId}/urls`);
+    if (!res.ok) return;
+    const pages = await res.json();
+    el.pageCount.textContent = pages.length;
+  } catch (_) {}
+}
+
+// ─────────────────────────────────────────────────────────────
+// PERSIST ACTIVE AGENT TO STORAGE
+// FIX: old code saved as "activeAgent" — now uses "activeAgentId"
+// ─────────────────────────────────────────────────────────────
+async function persistActiveAgent(agentId) {
+  await chrome.storage.local.set({ [KEYS.ACTIVE_AGENT_ID]: agentId });
+}
+
+// ─────────────────────────────────────────────────────────────
+// EVENT BINDINGS
+// ─────────────────────────────────────────────────────────────
+function attachEvents() {
+  el.select.onchange = async () => {
+    await persistActiveAgent(el.select.value);
+    updateHelper();
+    await updatePageCount();
+  };
+
+  // Create agent modal
+  el.createBtn.onclick    = openCreateModal;
+  el.cancelCreate.onclick = closeCreateModal;
+  el.cancelCreate2.onclick= closeCreateModal;
+  el.confirmCreate.onclick= createAgent;
+  el.agentNameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") createAgent();
+    if (e.key === "Escape") closeCreateModal();
   });
 
-  updateHelper();
+  // View URLs modal
+  el.viewUrlsBtn.onclick = showUrls;
+  el.closeUrls.onclick   = () => el.urlsModal.classList.add("hidden");
+
+  // Close modals on backdrop click
+  el.agentModal.addEventListener("click", (e) => {
+    if (e.target === el.agentModal) closeCreateModal();
+  });
+  el.urlsModal.addEventListener("click", (e) => {
+    if (e.target === el.urlsModal) el.urlsModal.classList.add("hidden");
+  });
+
+  // Save page
+  el.saveBtn.onclick = savePage;
+
+  // Ask / open chat
+  // FIX: was `askBtn.addEventListener` — `askBtn` was undefined (not in `els`)
+  el.askBtn.onclick = openChat;
+}
+
+// ─────────────────────────────────────────────────────────────
+// CREATE AGENT
+// ─────────────────────────────────────────────────────────────
+function openCreateModal() {
+  el.agentNameInput.value = "";
+  el.createError.classList.add("hidden");
+  el.agentModal.classList.remove("hidden");
+  setTimeout(() => el.agentNameInput.focus(), 50);
+}
+
+function closeCreateModal() {
+  el.agentModal.classList.add("hidden");
+  el.agentNameInput.value = "";
+  el.createError.classList.add("hidden");
 }
 
 async function createAgent() {
-  const name = els.agentNameInput.value.trim();
-
-  if (!name) return;
-
-  const { userId } = await chrome.storage.local.get("userId");
-
-  await fetch(`${API}/agents`, {
-    method: "POST",
-
-    headers: {
-      "Content-Type": "application/json",
-    },
-
-    body: JSON.stringify({
-      user_id: userId,
-      name,
-    }),
-  });
-
-  els.modal.classList.add("hidden");
-
-  await refreshAgents();
-}
-
-async function refreshAgents() {
-  const { userId } = await chrome.storage.local.get("userId");
-
-  const res = await fetch(`${API}/agents/${userId}`);
-
-  agents = await res.json();
-
-  await chrome.storage.local.set({ agents });
-
-  populateDropdown();
-}
-
-async function showUrls() {
-  const agentId = els.select.value;
-
-  const res = await fetch(`${API}/agents/${agentId}/urls`);
-
-  const urls = await res.json();
-
-  if (!urls.length) {
-    els.urlsList.innerHTML =
-      "<div style='font-size:12px;'>No pages saved.</div>";
-  } else {
-    els.urlsList.innerHTML =
-      `<div class="urls-list">` +
-      urls
-        .map((u) => {
-          const short = truncateUrl(u.url, 60);
-
-          return `
-          <div class="url-item"
-               title="${u.url}"
-               data-url="${u.url}">
-            • ${short}
-          </div>
-        `;
-        })
-        .join("") +
-      `</div>`;
+  const name = el.agentNameInput.value.trim();
+  if (!name) {
+    showCreateError("Agent name cannot be empty.");
+    return;
   }
 
-  // click handler
-  document.querySelectorAll(".url-item").forEach((el) => {
-    el.onclick = () => {
-      const url = el.dataset.url;
+  el.confirmCreate.disabled = true;
+  el.confirmCreate.textContent = "Creating…";
 
-      chrome.tabs.create({ url });
-    };
-  });
+  try {
+    const res = await fetch(`${API}/agents`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, name }),
+    });
 
-  els.urlsModal.classList.remove("hidden");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showCreateError(err.detail || "Failed to create agent.");
+      return;
+    }
+
+    const newAgent = await res.json();
+
+    // Refresh agent list and switch to the new one
+    await refreshAgents();
+    el.select.value = newAgent.id;
+    await persistActiveAgent(newAgent.id);
+    updateHelper();
+    await updatePageCount();
+
+    closeCreateModal();
+  } catch (err) {
+    showCreateError("Network error. Is the backend running?");
+  } finally {
+    el.confirmCreate.disabled = false;
+    el.confirmCreate.textContent = "Create";
+  }
 }
 
-function truncateUrl(url, maxLength) {
-  if (url.length <= maxLength) return url;
-
-  return url.substring(0, maxLength) + "...";
+function showCreateError(msg) {
+  el.createError.textContent = msg;
+  el.createError.classList.remove("hidden");
 }
 
+// ─────────────────────────────────────────────────────────────
+// SHOW SAVED URLS MODAL
+// FIX: was using raw u.url — now uses u.display_url (scheme stripped)
+// FIX: added delete button per row
+// ─────────────────────────────────────────────────────────────
+async function showUrls() {
+  const agentId = el.select.value;
+  el.urlsList.innerHTML = `<div class="urls-empty">Loading…</div>`;
+  el.urlsModal.classList.remove("hidden");
+
+  try {
+    const res = await fetch(`${API}/agents/${agentId}/urls`);
+    const pages = await res.json();
+
+    if (!pages.length) {
+      el.urlsList.innerHTML = `<div class="urls-empty">No pages saved yet.<br/>Browse a page and click Save.</div>`;
+      return;
+    }
+
+    el.urlsList.innerHTML = "";
+
+    pages.forEach((page) => {
+      const item = document.createElement("div");
+      item.className = "url-item";
+
+      const title   = page.title && page.title.trim() ? page.title : page.display_url;
+      const display = page.display_url || page.url;
+
+      item.innerHTML = `
+        <span class="url-icon">⊡</span>
+        <div class="url-text">
+          <div class="url-title">${escHtml(title)}</div>
+          <div class="url-display">${escHtml(display)}</div>
+        </div>
+        <button class="btn btn-danger url-delete" data-id="${page.id}" title="Remove">✕</button>
+      `;
+
+      // Click row → open full URL in new tab
+      item.addEventListener("click", (e) => {
+        if (e.target.closest(".url-delete")) return;
+        chrome.tabs.create({ url: page.url });
+      });
+
+      // Delete button
+      item.querySelector(".url-delete").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await deletePage(page.id, item);
+      });
+
+      el.urlsList.appendChild(item);
+    });
+
+    // Update count in header after render
+    el.pageCount.textContent = pages.length;
+
+  } catch (err) {
+    el.urlsList.innerHTML = `<div class="urls-empty">Failed to load pages.</div>`;
+  }
+}
+
+async function deletePage(pageId, itemEl) {
+  itemEl.style.opacity = "0.4";
+  itemEl.style.pointerEvents = "none";
+  try {
+    const res = await fetch(`${API}/pages/${pageId}?user_id=${userId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      itemEl.remove();
+      // Decrement count
+      const current = parseInt(el.pageCount.textContent, 10) || 1;
+      el.pageCount.textContent = Math.max(0, current - 1);
+    } else {
+      itemEl.style.opacity = "";
+      itemEl.style.pointerEvents = "";
+    }
+  } catch (_) {
+    itemEl.style.opacity = "";
+    itemEl.style.pointerEvents = "";
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SAVE CURRENT PAGE
+// FIX: no longer reports instant success — waits for SAVE_RESULT message
+// ─────────────────────────────────────────────────────────────
 async function savePage() {
-  console.log("Ingesting Page");
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
+  if (!currentTab?.id) {
+    setStatus("No active tab found.", "error");
+    return;
+  }
 
-  const statusEl = document.getElementById("statusMessage");
-  statusEl.textContent = "Saving page...";
+  el.saveBtn.disabled = true;
+  setStatus("Saving page…", "");
 
   chrome.runtime.sendMessage({
     action: "Save_Page",
-    tabId: tab.id,
+    tabId: currentTab.id,
   });
 
-  statusEl.textContent = "✅ Page saved to active assistant!";
+  // Timeout fallback — background may not respond if content script is blocked
   setTimeout(() => {
-    statusEl.textContent = "";
-  }, 3000);
+    if (el.saveBtn.disabled) {
+      el.saveBtn.disabled = false;
+      // Don't overwrite a result that already came in
+    }
+  }, 8000);
 }
 
-askBtn.addEventListener("click", () => {
-  const chatUrl = chrome.runtime.getURL("chat-ui/index.html");
+function handleSaveResult({ ok, error }) {
+  el.saveBtn.disabled = false;
+  if (ok) {
+    setStatus("✓ Page saved to assistant!", "ok");
+    updatePageCount(); // refresh count
+  } else {
+    const msg = error?.includes("already saved")
+      ? "Already saved to this assistant."
+      : `Error: ${error || "unknown"}`;
+    setStatus(msg, "error");
+  }
+  setTimeout(() => setStatus("", ""), 4000);
+}
 
-  chrome.tabs.create({
-    url: chatUrl,
-  });
-});
+function setStatus(text, type) {
+  el.statusMsg.textContent = text;
+  el.statusMsg.className = "status-message" + (type ? ` ${type}` : "");
+}
+
+// ─────────────────────────────────────────────────────────────
+// OPEN CHAT UI
+// ─────────────────────────────────────────────────────────────
+function openChat() {
+  const chatUrl = chrome.runtime.getURL("chat-ui/index.html");
+  chrome.tabs.create({ url: chatUrl });
+}
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Strip scheme + www from a URL for compact display.
+ * Matches the backend display_url() logic.
+ */
+function displayUrl(url) {
+  try {
+    const u = new URL(url);
+    let host = u.hostname.replace(/^www\./, "");
+    let path = u.pathname.replace(/\/$/, "");
+    let full = host + path + (u.search || "");
+    return full.length > 55 ? full.slice(0, 52) + "…" : full;
+  } catch {
+    return url;
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}

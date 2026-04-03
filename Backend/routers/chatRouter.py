@@ -3,34 +3,33 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-
 from models.chat import Chat
 from models.message import Message
 from models.agents import Agent
 from models.users import User
 from models.savedPages import SavedPage
+from requestSchemas.requestSchemas import RenameChatRequest
 
 router = APIRouter()
 
 
-# ---------------------------------------------------
-# Create new chat (manual creation, still available)
-# ---------------------------------------------------
+# -------------------------------------------------------
+# Create chat
+# -------------------------------------------------------
 @router.post("/chats")
 def create_chat(
     user_id: str,
     agent_id: str,
     page_id: str | None = None,
     title: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
 
     agent = db.query(Agent).filter(
-        Agent.id == agent_id,
-        Agent.user_id == user_id
+        Agent.id == agent_id, Agent.user_id == user_id
     ).first()
     if not agent:
         raise HTTPException(403, "Agent does not belong to user")
@@ -39,7 +38,7 @@ def create_chat(
         page = db.query(SavedPage).filter(
             SavedPage.id == page_id,
             SavedPage.agent_id == agent_id,
-            SavedPage.user_id == user_id
+            SavedPage.user_id == user_id,
         ).first()
         if not page:
             raise HTTPException(403, "Page does not belong to agent")
@@ -49,51 +48,41 @@ def create_chat(
         user_id=user_id,
         agent_id=agent_id,
         page_id=page_id,
-        title=title or "New Chat"
+        title=title or "New Chat",
     )
-
     db.add(chat)
     db.commit()
-
+    db.refresh(chat)
     return chat
 
 
-# ---------------------------------------------------
+# -------------------------------------------------------
 # Get chats for agent
-# ---------------------------------------------------
+# -------------------------------------------------------
 @router.get("/chats/{agent_id}/{user_id}")
-def get_chats(
-    agent_id: str,
-    user_id: str,
-    db: Session = Depends(get_db)
-):
+def get_chats(agent_id: str, user_id: str, db: Session = Depends(get_db)):
     agent = db.query(Agent).filter(
-        Agent.id == agent_id,
-        Agent.user_id == user_id
+        Agent.id == agent_id, Agent.user_id == user_id
     ).first()
     if not agent:
         raise HTTPException(403, "Agent not found")
 
     chats = db.query(Chat).filter(
         Chat.agent_id == agent_id,
-        Chat.user_id == user_id
+        Chat.user_id == user_id,
     ).order_by(Chat.created_at.desc()).all()
 
     return chats
 
 
-# ---------------------------------------------------
+# -------------------------------------------------------
 # Get messages for chat
-# ---------------------------------------------------
+# FIX: was missing `return messages` — every call returned null
+# -------------------------------------------------------
 @router.get("/messages/{chat_id}")
-def get_messages(
-    chat_id: str,
-    user_id: str,
-    db: Session = Depends(get_db)
-):
+def get_messages(chat_id: str, user_id: str, db: Session = Depends(get_db)):
     chat = db.query(Chat).filter(
-        Chat.id == chat_id,
-        Chat.user_id == user_id
+        Chat.id == chat_id, Chat.user_id == user_id
     ).first()
     if not chat:
         raise HTTPException(403, "Chat not found")
@@ -101,3 +90,43 @@ def get_messages(
     messages = db.query(Message).filter(
         Message.chat_id == chat_id
     ).order_by(Message.created_at.asc()).all()
+
+    return messages   # FIX: this line was missing
+
+
+# -------------------------------------------------------
+# Rename a chat
+# -------------------------------------------------------
+@router.patch("/chats/{chat_id}/title")
+def rename_chat(
+    chat_id: str,
+    user_id: str,
+    req: RenameChatRequest,
+    db: Session = Depends(get_db),
+):
+    chat = db.query(Chat).filter(
+        Chat.id == chat_id, Chat.user_id == user_id
+    ).first()
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+
+    chat.title = req.title.strip() or "New Chat"
+    db.commit()
+    db.refresh(chat)
+    return chat
+
+
+# -------------------------------------------------------
+# Delete a chat
+# -------------------------------------------------------
+@router.delete("/chats/{chat_id}")
+def delete_chat(chat_id: str, user_id: str, db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(
+        Chat.id == chat_id, Chat.user_id == user_id
+    ).first()
+    if not chat:
+        raise HTTPException(404, "Chat not found")
+
+    db.delete(chat)
+    db.commit()
+    return {"deleted": chat_id}
