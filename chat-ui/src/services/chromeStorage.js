@@ -16,4 +16,8 @@ export const chromeStorage = {
     new Promise((resolve) => {
       chrome.storage.local.remove(keys, resolve);
     }),
+
+  getSession: (keys) => new Promise((resolve) => chrome.storage.session.get(keys, resolve)),
+  setSession: (data) => new Promise((resolve) => chrome.storage.session.set(data, resolve)),
+  removeSession: (keys) => new Promise((resolve) => chrome.storage.session.remove(keys, resolve)),
 };

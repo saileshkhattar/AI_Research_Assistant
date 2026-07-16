@@ -31,11 +31,11 @@ export default function PageList() {
   const fetchPages = useCallback(() => {
     if (!activeAgentId) return;
     setLoading(true);
-    AgentAPI.getAgentUrls(activeAgentId)
+    AgentAPI.getAgentUrls(activeAgentId, userId)
       .then((result) => setPages(result))
       .catch((err) => console.error("Failed to load pages:", err))
       .finally(() => setLoading(false));
-  }, [activeAgentId]);
+  }, [activeAgentId, userId]);
  
   useEffect(() => {
     setPages([]);

@@ -31,7 +31,7 @@ export default function MessageInput({ onSend, isStreaming, disabled = false, pl
       sx={{
         p: 2.5,
         borderTop: "1px solid #1e1e27",
-        backgroundColor: "#0e0e11",
+          backgroundColor: "#0b1020",
         flexShrink: 0,
       }}
     >
@@ -42,12 +42,12 @@ export default function MessageInput({ onSend, isStreaming, disabled = false, pl
           alignItems: "flex-end",
           padding: "10px 10px 10px 16px",
           borderRadius: "12px",
-          backgroundColor: "#141418",
-          border: `1px solid ${isDisabled ? "#1e1e27" : "#2a2a35"}`,
+          backgroundColor: "#131b2f",
+          border: `1px solid ${isDisabled ? "#2b3a58" : "#4b5f82"}`,
           transition: "border-color 0.2s, box-shadow 0.2s",
           "&:focus-within": {
-            borderColor: isDisabled ? "#1e1e27" : "#00d4ff",
-            boxShadow: isDisabled ? "none" : "0 0 0 3px rgba(0,212,255,0.06)",
+            borderColor: isDisabled ? "#2b3a58" : "#5eead4",
+            boxShadow: isDisabled ? "none" : "0 0 0 3px rgba(94,234,212,0.14)",
           },
         }}
       >
@@ -67,11 +67,11 @@ export default function MessageInput({ onSend, isStreaming, disabled = false, pl
             "& .MuiInputBase-root": {
               fontFamily: "'Syne', sans-serif",
               fontSize: "0.9rem",
-              color: "#e8e8f0",
+              color: "#f8fafc",
               lineHeight: 1.6,
             },
             "& .MuiInputBase-input::placeholder": {
-              color: "#4a4a60",
+              color: "#94a3b8",
               opacity: 1,
               fontFamily: "'Syne', sans-serif",
             },
@@ -87,14 +87,14 @@ export default function MessageInput({ onSend, isStreaming, disabled = false, pl
             width: 36,
             height: 36,
             borderRadius: "8px",
-            backgroundColor: canSend ? "#00d4ff" : "#1a1a22",
-            border: `1px solid ${canSend ? "#00d4ff" : "#2a2a35"}`,
-            color: canSend ? "#0e0e11" : "#3a3a50",
+            backgroundColor: canSend ? "#5eead4" : "#1c2942",
+            border: `1px solid ${canSend ? "#5eead4" : "#4b5f82"}`,
+            color: canSend ? "#06201e" : "#94a3b8",
             transition: "all 0.2s",
             flexShrink: 0,
             "&:hover": {
-              backgroundColor: canSend ? "#33ddff" : "#1f1f28",
-              boxShadow: canSend ? "0 0 16px rgba(0,212,255,0.3)" : "none",
+              backgroundColor: canSend ? "#99f6e4" : "#273754",
+              boxShadow: canSend ? "0 0 16px rgba(94,234,212,0.3)" : "none",
             },
             "&.Mui-disabled": {
               backgroundColor: "#141418",

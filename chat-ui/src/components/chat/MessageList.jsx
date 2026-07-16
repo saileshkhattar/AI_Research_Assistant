@@ -1,5 +1,5 @@
-import { Box, Skeleton } from "@mui/material";
-import { useRef, useEffect, useState } from "react";
+import { Box } from "@mui/material";
+import { useRef, useEffect } from "react";
 import MessageItem from "./MessageItem";
 import { useMessages } from "../../hooks/useMessages";
 import { useChats } from "../../hooks/useChats";
@@ -8,38 +8,9 @@ export default function MessageList() {
   const { messages, isStreaming } = useMessages();
   const { activeChatId } = useChats();
   const bottomRef = useRef();
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const prevChatId = useRef(null);
-
-  // Show skeleton while switching chats and messages are loading
-  useEffect(() => {
-    if (activeChatId !== prevChatId.current) {
-      if (activeChatId) setLoadingMessages(true);
-      prevChatId.current = activeChatId;
-    }
-  }, [activeChatId]);
-
-  // Once messages arrive (or stay empty), stop showing skeleton
-  useEffect(() => {
-    setLoadingMessages(false);
-  }, [messages]);
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  if (loadingMessages) {
-    return (
-      <Box sx={{ height: "100%", overflowY: "auto", p: 3 }}>
-        {[1, 2, 3].map((i) => (
-          <Box key={i} sx={{ display: "flex", gap: 1.5, mb: 2.5, flexDirection: i % 2 === 0 ? "row-reverse" : "row" }}>
-            <Skeleton variant="rounded" width={30} height={30} sx={{ bgcolor: "#22252e", flexShrink: 0, borderRadius: "8px" }} />
-            <Skeleton variant="rounded" width={i % 2 === 0 ? "55%" : "70%"} height={56} sx={{ bgcolor: "#22252e", borderRadius: "12px" }} />
-          </Box>
-        ))}
-      </Box>
-    );
-  }
 
   return (
     <Box

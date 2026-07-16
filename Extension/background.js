@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+importScripts("config.js");
 
 // ─────────────────────────────────────────────
 // STORAGE KEY CONSTANTS
@@ -21,7 +21,7 @@ async function ensureUser() {
   if (userId) {
     // Confirm the user still exists in the backend
     try {
-      const res = await fetch(`${API_BASE}/users/${userId}`);
+      const res = await fetch(`${getApiBaseUrl()}/users/${userId}`);
       if (res.ok) return userId;
     } catch (_) {
       // Backend unreachable — return cached id and retry later
@@ -30,7 +30,7 @@ async function ensureUser() {
   }
 
   // Create a new user
-  const res = await fetch(`${API_BASE}/users`, { method: "POST" });
+  const res = await fetch(`${getApiBaseUrl()}/users`, { method: "POST" });
   if (!res.ok) throw new Error(`Failed to create user: ${res.status}`);
 
   const { id: newId } = await res.json();
@@ -43,7 +43,7 @@ async function ensureUser() {
 // AGENT BOOTSTRAP
 // ─────────────────────────────────────────────
 async function ensureAgents(userId) {
-  const res = await fetch(`${API_BASE}/agents/${userId}`);
+  const res = await fetch(`${getApiBaseUrl()}/agents/${userId}`);
   if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`);
 
   const agents = await res.json();
@@ -113,14 +113,19 @@ async function handlePageCaptured({ content, title, url }) {
   const storage = await chrome.storage.local.get([KEYS.USER_ID, KEYS.ACTIVE_AGENT_ID]);
   const userId  = storage[KEYS.USER_ID];
   const agentId = storage[KEYS.ACTIVE_AGENT_ID];
+  const { geminiApiKey } = await chrome.storage.session.get("geminiApiKey");
 
   if (!userId)  { console.error("No userId");  return; }
   if (!agentId) { console.error("No activeAgentId"); return; }
+  if (!geminiApiKey) {
+    chrome.runtime.sendMessage({ action: "SAVE_RESULT", ok: false, error: "Add your Gemini API key in the extension first." });
+    return;
+  }
 
   try {
-    const res = await fetch(`${API_BASE}/ingest_page`, {
+    const res = await fetch(`${getApiBaseUrl()}/ingest_page`, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Gemini-Api-Key": geminiApiKey },
       body: JSON.stringify({ user_id: userId, agent_id: agentId, url, title, content }),
     });
 

@@ -49,7 +49,7 @@ export default function NewAgentButton() {
       setAgents((prev) => [...prev, newAgent]);
       setActiveAgent(newAgent.id);
       handleClose();
-    } catch (err) {
+    } catch {
       setError("Failed to create agent. Please try again.");
     } finally {
       setLoading(false);

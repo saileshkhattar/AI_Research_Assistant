@@ -2,12 +2,22 @@ import "./App.css";
 import ChatPage from "./pages/ChatPages";
 import { useAgentContext } from "./context/Agent/useAgentContext.js";
 import { useChatContext } from "./context/Chat/useChatContext.js";
+import { useEffect, useState } from "react";
+import { chromeStorage } from "./services/chromeStorage.js";
+import GeminiKeyOnboarding from "./components/onboarding/GeminiKeyOnboarding.jsx";
 
 function App() {
   const { isLoaded: agentsLoaded } = useAgentContext();
   const { isLoaded: chatsLoaded } = useChatContext();
+  const [hasGeminiKey, setHasGeminiKey] = useState(null);
 
-  if (!agentsLoaded || !chatsLoaded) {
+  useEffect(() => {
+    chromeStorage.getSession("geminiApiKey").then(({ geminiApiKey }) => setHasGeminiKey(Boolean(geminiApiKey)));
+  }, []);
+
+  if (hasGeminiKey === false) return <GeminiKeyOnboarding onComplete={() => setHasGeminiKey(true)} />;
+
+  if (hasGeminiKey === null || !agentsLoaded || !chatsLoaded) {
     return (
       <div
         style={{

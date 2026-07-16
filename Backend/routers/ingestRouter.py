@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -7,14 +7,19 @@ from models.agents import Agent
 from models.savedPages import SavedPage
 from requestSchemas.requestSchemas import IngestRequest, SavedPageResponse
 from helpers.urlHelper import normalize_url, check_if_url_exists, display_url
-from ragSetup.ragArchitecture import text_splitter, vectorstore
+from ragSetup.ragArchitecture import text_splitter
+from ragSetup.retrieverFactory import get_vectorstore
 from langchain_core.documents import Document
 
 router = APIRouter()
 
 
 @router.post("/ingest_page", response_model=dict)
-async def ingest_page(req: IngestRequest, db: Session = Depends(get_db)):
+async def ingest_page(
+    req: IngestRequest,
+    db: Session = Depends(get_db),
+    gemini_api_key: str = Header(..., alias="X-Gemini-Api-Key", min_length=20, max_length=256),
+):
     """
     Normalise the URL, validate ownership, embed the page content into
     Chroma, and save a SavedPage record. Returns the new page_id.
@@ -56,12 +61,12 @@ async def ingest_page(req: IngestRequest, db: Session = Depends(get_db)):
             },
         )
         docs = text_splitter.split_documents([document])
-        vectorstore.add_documents(docs)
+        get_vectorstore(gemini_api_key).add_documents(docs)
         # NOTE: vectorstore.persist() removed — chromadb >= 0.4 auto-persists
 
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Vector storage failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Could not store page embeddings")
 
     db.commit()
 
@@ -87,6 +92,8 @@ def delete_page(page_id: str, user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Page not found")
 
     try:
+        # Deleting does not need an embedding function.
+        from ragSetup.ragArchitecture import vectorstore
         collection = vectorstore._collection
         results = collection.get(where={"page_id": {"$eq": page_id}})
         if results and results.get("ids"):

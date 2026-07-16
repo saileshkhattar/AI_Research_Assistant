@@ -33,6 +33,8 @@ body {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
+.key-setup { width: 380px; min-height: 560px; padding: 32px 24px; background: linear-gradient(145deg, #0b1020, #173a5e); overflow: hidden; }
+.key-slide { animation: slide-in .25s ease; }.key-slide h1 { font-size: 1.55rem; margin: 8px 0; }.key-slide p, .key-slide li { color: var(--text-secondary); font-size: .82rem; line-height: 1.6; }.key-slide ol { padding-left: 20px; }.key-slide .input { margin: 16px 0 8px; }.link-btn { display: block; margin: 18px 0 0; padding: 0; background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; font-size: .78rem; }.help-link { color: var(--accent); font-size: .8rem; }.key-setup + .container { display: none; }@keyframes slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
 
 /* ── SCROLLBAR ─────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }

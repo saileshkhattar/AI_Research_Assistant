@@ -1,5 +1,5 @@
 from models.savedPages import SavedPage
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from sqlalchemy.orm import Session
 import re
  
@@ -14,6 +14,8 @@ def normalize_url(url: str) -> str:
     Keeps the full URL including scheme — stored value is always canonical.
     """
     parsed = urlparse(url.strip())
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("Only absolute HTTP(S) URLs are supported")
  
     scheme = parsed.scheme.lower() or "https"
     netloc = parsed.netloc.lower()
@@ -24,11 +26,11 @@ def normalize_url(url: str) -> str:
         STRIP_PARAMS = {"utm_source", "utm_medium", "utm_campaign", "utm_term",
                         "utm_content", "ref", "fbclid", "gclid", "mc_cid", "mc_eid"}
         kept = []
-        for part in parsed.query.split("&"):
-            key = part.split("=")[0].lower()
+        for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+            key = key.lower()
             if key not in STRIP_PARAMS:
-                kept.append(part)
-        query = "&".join(kept)
+                kept.append((key, value))
+        query = urlencode(kept, doseq=True)
     else:
         query = ""
  

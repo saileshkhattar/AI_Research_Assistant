@@ -1,12 +1,15 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+import { getApiBaseUrl } from "./config.js";
+import { chromeStorage } from "./chromeStorage.js";
 
 async function apiRequest(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${getApiBaseUrl()}${endpoint}`;
+  const { geminiApiKey } = await chromeStorage.getSession("geminiApiKey");
 
   const config = {
     method: options.method || "GET",
     headers: {
       "Content-Type": "application/json",
+      ...(geminiApiKey ? { "X-Gemini-Api-Key": geminiApiKey } : {}),
       ...(options.headers || {}),
     },
   };
@@ -22,7 +25,7 @@ async function apiRequest(endpoint, options = {}) {
     throw new Error(`API Error ${response.status}: ${errorText}`);
   }
 
-  return response.json();
+  return response.status === 204 ? null : response.json();
 }
 
 export const UserAPI = {
@@ -37,7 +40,7 @@ export const AgentAPI = {
     apiRequest(`/agents`, { method: "POST", body: data }),
 
   // Returns SavedPageResponse[] — each item has display_url (clean) and url (full)
-  getAgentUrls: (agentId) => apiRequest(`/agents/${agentId}/urls`),
+  getAgentUrls: (agentId, userId) => apiRequest(`/agents/${agentId}/urls?user_id=${encodeURIComponent(userId)}`),
 
   deleteAgent: (agentId, userId) =>
     apiRequest(`/agents/${agentId}?user_id=${userId}`, { method: "DELETE" }),

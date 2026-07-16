@@ -1,6 +1,6 @@
 import uuid
  
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
  
@@ -8,6 +8,7 @@ from database import get_db, SessionLocal
 from models.chat import Chat
 from models.message import Message
 from models.agents import Agent
+from models.savedPages import SavedPage
  
 from requestSchemas.requestSchemas import QueryRequest
 from ragSetup.ragServices import stream_generate_response, generate_chat_title
@@ -16,22 +17,34 @@ router = APIRouter()
  
  
 @router.post("/query/stream")
-def query_stream(req: QueryRequest, db: Session = Depends(get_db)):
+def query_stream(
+    req: QueryRequest,
+    db: Session = Depends(get_db),
+    gemini_api_key: str = Header(..., alias="X-Gemini-Api-Key", min_length=20, max_length=256),
+):
  
     chat_id = req.chat_id
  
     # ─────────────────────────────────────────────────────────
     # Auto-create chat if none provided
     # ─────────────────────────────────────────────────────────
-    if not chat_id:
-        agent = db.query(Agent).filter(
-            Agent.id == req.agent_id,
-            Agent.user_id == req.user_id,
+    agent = db.query(Agent).filter(
+        Agent.id == req.agent_id,
+        Agent.user_id == req.user_id,
+    ).first()
+    if not agent:
+        raise HTTPException(403, "Agent not found or does not belong to user")
+
+    if req.page_id:
+        page = db.query(SavedPage).filter(
+            SavedPage.id == req.page_id,
+            SavedPage.agent_id == req.agent_id,
+            SavedPage.user_id == req.user_id,
         ).first()
- 
-        if not agent:
-            raise HTTPException(403, "Agent not found or does not belong to user")
- 
+        if not page:
+            raise HTTPException(403, "Page does not belong to agent")
+
+    if not chat_id:
         # Inbox agent: every chat MUST be scoped to a single page.
         # Reject the request if no page_id is provided.
         if agent.type == "system_inbox" and not req.page_id:
@@ -42,7 +55,7 @@ def query_stream(req: QueryRequest, db: Session = Depends(get_db)):
             )
  
         try:
-            title = generate_chat_title(agent.type, req.question)
+            title = generate_chat_title(agent.type, req.question, gemini_api_key)
         except Exception:
             title = req.question[:60] or "New Chat"
  
@@ -66,6 +79,12 @@ def query_stream(req: QueryRequest, db: Session = Depends(get_db)):
  
         if not chat:
             raise HTTPException(403, "Chat not found or does not belong to user")
+
+        if chat.agent_id != req.agent_id:
+            raise HTTPException(403, "Chat does not belong to agent")
+
+        if req.page_id and chat.page_id != req.page_id:
+            raise HTTPException(403, "Page does not belong to chat")
  
         # For inbox chats that already exist, inherit the page_id from the chat
         # so ragServices can scope retrieval to the correct page even if the
@@ -99,13 +118,14 @@ def query_stream(req: QueryRequest, db: Session = Depends(get_db)):
     _chat_id  = chat_id
     _question = req.question
     _page_id  = req.page_id
+    _api_key = gemini_api_key
  
     def generator():
         full_response = ""
         gen_db = SessionLocal()
         try:
             for token in stream_generate_response(
-                gen_db, _user_id, _agent_id, _chat_id, _question, _page_id
+                gen_db, _user_id, _agent_id, _chat_id, _question, _page_id, _api_key
             ):
                 full_response += token
                 yield token
@@ -123,7 +143,12 @@ def query_stream(req: QueryRequest, db: Session = Depends(get_db)):
  
         except Exception as e:
             gen_db.rollback()
-            yield f"\n\n[Error: {str(e)}]"
+            message = str(e).lower()
+            if "resource_exhausted" in message or "429" in message or "quota" in message:
+                yield "\n\n[RATE_LIMITED] Gemini has reached a temporary quota. Try again later or review your Gemini API plan."
+            else:
+                # Do not expose provider exceptions; they can contain request details.
+                yield "\n\n[Error: Gemini could not complete this request. Check your API key and try again.]"
         finally:
             gen_db.close()
  

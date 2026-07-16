@@ -1,5 +1,7 @@
 import { useChatContext } from "../context/Chat/useChatContext.js";
 import { useAgentContext } from "../context/Agent/useAgentContext.js";
+import { getApiBaseUrl } from "../services/config.js";
+import { chromeStorage } from "../services/chromeStorage.js";
 
 export function useMessages() {
   const {
@@ -36,9 +38,11 @@ export function useMessages() {
     setIsStreaming(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/query/stream", {
+      const { geminiApiKey } = await chromeStorage.getSession("geminiApiKey");
+      if (!geminiApiKey) throw new Error("Add your Gemini API key in the extension popup before chatting.");
+      const response = await fetch(`${getApiBaseUrl()}/query/stream`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Gemini-Api-Key": geminiApiKey },
         body: JSON.stringify({
           user_id:  userId,
           agent_id: activeAgentId,
@@ -50,6 +54,7 @@ export function useMessages() {
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
+        if (response.status === 429) throw new Error("Request limit reached. Please wait before trying again.");
         throw new Error(err.detail || `Server error ${response.status}`);
       }
 

@@ -1,31 +1,49 @@
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
+from urllib.parse import urlparse
+
+
+MAX_PAGE_CONTENT_LENGTH = 500_000
+MAX_MESSAGE_LENGTH = 12_000
+MAX_NAME_LENGTH = 100
+
+
+class RequestModel(BaseModel):
+    model_config = {"str_strip_whitespace": True}
  
  
-class IngestRequest(BaseModel):
-    user_id: str
-    agent_id: str
-    url: str
-    title: Optional[str] = None
-    content: str
+class IngestRequest(RequestModel):
+    user_id: str = Field(min_length=1, max_length=64)
+    agent_id: str = Field(min_length=1, max_length=64)
+    url: str = Field(min_length=1, max_length=4_096)
+    title: Optional[str] = Field(default=None, max_length=500)
+    content: str = Field(min_length=1, max_length=MAX_PAGE_CONTENT_LENGTH)
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, url: str) -> str:
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("Only absolute HTTP(S) URLs can be saved")
+        return url
  
  
-class QueryRequest(BaseModel):
-    user_id: str
-    agent_id: str
-    chat_id: Optional[str] = None
-    question: str
-    page_id: Optional[str] = None
+class QueryRequest(RequestModel):
+    user_id: str = Field(min_length=1, max_length=64)
+    agent_id: str = Field(min_length=1, max_length=64)
+    chat_id: Optional[str] = Field(default=None, max_length=64)
+    question: str = Field(min_length=1, max_length=MAX_MESSAGE_LENGTH)
+    page_id: Optional[str] = Field(default=None, max_length=64)
  
  
-class CreateAgentRequest(BaseModel):
-    user_id: str
-    name: str
+class CreateAgentRequest(RequestModel):
+    user_id: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=MAX_NAME_LENGTH)
  
  
-class RenameChatRequest(BaseModel):
-    title: str
+class RenameChatRequest(RequestModel):
+    title: str = Field(min_length=1, max_length=200)
  
  
 class SavedPageResponse(BaseModel):
@@ -44,4 +62,3 @@ class SavedPageResponse(BaseModel):
     created_at: datetime
  
     model_config = {"from_attributes": True}
-

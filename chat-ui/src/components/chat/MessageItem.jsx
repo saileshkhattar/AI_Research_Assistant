@@ -59,18 +59,18 @@ export default function MessageItem({ message }) {
           maxWidth: "68%",
           minWidth: isStreaming && !message.content ? 48 : undefined,
           borderRadius: isUser ? "14px 4px 14px 14px" : "4px 14px 14px 14px",
-          backgroundColor: isUser ? "#0f2540" : "#13131a",
+          backgroundColor: isUser ? "#173a5e" : "#172033",
           border: `1px solid ${
             isUser
-              ? "#1a4a7a"
+              ? "#3b82f6"
               : isStreaming
               ? "rgba(0,212,255,0.18)"
-              : "#1e1e27"
+              : "#405275"
           }`,
           whiteSpace: "pre-wrap",
           transition: "border-color 0.3s",
           "&:hover": {
-            borderColor: isUser ? "#1e5a8a" : "#2a2a35",
+            borderColor: isUser ? "#60a5fa" : "#5a6f96",
           },
         }}
       >
@@ -80,7 +80,7 @@ export default function MessageItem({ message }) {
             fontFamily: "'Syne', sans-serif",
             fontSize: "0.9rem",
             lineHeight: 1.65,
-            color: isUser ? "#c8e4f8" : "#d8d8e8",
+            color: isUser ? "#eff6ff" : "#f1f5f9",
             fontWeight: 400,
           }}
         >

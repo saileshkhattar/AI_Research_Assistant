@@ -7,28 +7,21 @@ import os
 
 load_dotenv()
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+def get_model(api_key: str) -> ChatGoogleGenerativeAI:
+    return ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=api_key)
 
-# -------------------------------------------------------
-# Shared model and embeddings — initialised once at startup
-# -------------------------------------------------------
-model = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    api_key=GOOGLE_API_KEY,
-)
 
-embeddings = GoogleGenerativeAIEmbeddings(
-    model="gemini-embedding-001",
-    version="v1",
-    google_api_key=GOOGLE_API_KEY,
-)
+def get_embeddings(api_key: str) -> GoogleGenerativeAIEmbeddings:
+    return GoogleGenerativeAIEmbeddings(
+        model="gemini-embedding-001", version="v1", google_api_key=api_key
+    )
 
 PERSIST_DIR = "chroma_db"
 
 # Global vectorstore for ingestion (shared write handle)
 vectorstore = Chroma(
     collection_name="web_pages",
-    embedding_function=embeddings,
+    embedding_function=None,
     persist_directory=PERSIST_DIR,
 )
 

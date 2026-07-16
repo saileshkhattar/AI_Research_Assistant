@@ -7,7 +7,14 @@ const KEYS = {
   ACTIVE_AGENT_ID: "activeAgentId",  // FIX: was "activeAgent" in old popup — mismatched background
 };
 
-const API = "http://127.0.0.1:8000";
+const API = (() => {
+  try {
+    return getApiBaseUrl();
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+})();
 
 // ─────────────────────────────────────────────────────────────
 // DOM REFS
@@ -38,6 +45,14 @@ const el = {
 
   askBtn:         document.getElementById("askBtn"),        // FIX: was undeclared var
   questionBox:    document.getElementById("questionBox"),
+  keySetup:       document.getElementById("keySetup"),
+  keyEntry:       document.getElementById("keyEntry"),
+  keySteps:       document.getElementById("keySteps"),
+  geminiKeyInput: document.getElementById("geminiKeyInput"),
+  saveGeminiKey:  document.getElementById("saveGeminiKeyBtn"),
+  showKeySteps:   document.getElementById("showKeyStepsBtn"),
+  backToKey:      document.getElementById("backToKeyBtn"),
+  keyError:       document.getElementById("keyError"),
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -51,6 +66,11 @@ let currentTab = null;
 // INIT
 // ─────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
+  const { geminiApiKey } = await chrome.storage.session.get("geminiApiKey");
+  if (!geminiApiKey) {
+    showKeySetup();
+    return;
+  }
   // Trigger background identity init
   chrome.runtime.sendMessage({ action: "INIT_IDENTITY" });
 
@@ -71,10 +91,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
+function showKeySetup() {
+  el.keySetup.classList.remove("hidden");
+  el.saveGeminiKey.onclick = async () => {
+    const key = el.geminiKeyInput.value.trim();
+    if (key.length < 20) { el.keyError.textContent = "Enter a valid Gemini API key."; el.keyError.classList.remove("hidden"); return; }
+    await chrome.storage.session.set({ geminiApiKey: key });
+    window.location.reload();
+  };
+  el.showKeySteps.onclick = () => { el.keyEntry.classList.add("hidden"); el.keySteps.classList.remove("hidden"); };
+  el.backToKey.onclick = () => { el.keySteps.classList.add("hidden"); el.keyEntry.classList.remove("hidden"); };
+}
+
 // ─────────────────────────────────────────────────────────────
 // LOAD STATE FROM STORAGE + BACKEND
 // ─────────────────────────────────────────────────────────────
 async function loadState() {
+  if (!API) {
+    setStatus("Extension API URL is not configured.", "error");
+    return;
+  }
   const storage = await chrome.storage.local.get([
     KEYS.USER_ID, KEYS.AGENTS, KEYS.ACTIVE_AGENT_ID,
   ]);
@@ -164,7 +200,7 @@ async function updatePageCount() {
   const agentId = el.select.value;
   if (!agentId) return;
   try {
-    const res = await fetch(`${API}/agents/${agentId}/urls`);
+    const res = await fetch(`${API}/agents/${encodeURIComponent(agentId)}/urls?user_id=${encodeURIComponent(userId)}`);
     if (!res.ok) return;
     const pages = await res.json();
     el.pageCount.textContent = pages.length;
@@ -292,7 +328,7 @@ async function showUrls() {
   el.urlsModal.classList.remove("hidden");
 
   try {
-    const res = await fetch(`${API}/agents/${agentId}/urls`);
+    const res = await fetch(`${API}/agents/${encodeURIComponent(agentId)}/urls?user_id=${encodeURIComponent(userId)}`);
     const pages = await res.json();
 
     if (!pages.length) {

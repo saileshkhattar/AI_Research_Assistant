@@ -3,12 +3,27 @@
 <head>
   <meta charset="utf-8"/>
   <title>Research AI</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700&display=swap"/>
   <link rel="stylesheet" href="popup.css"/>
 </head>
 
 <body>
+<div id="keySetup" class="key-setup hidden">
+  <div class="key-slide" id="keyEntry">
+    <div class="section-label">Private research setup</div>
+    <h1>Connect Gemini</h1>
+    <p>Your API key is kept only for this browser session and is never stored in our database.</p>
+    <input id="geminiKeyInput" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Gemini API key"/>
+    <div id="keyError" class="error-text hidden"></div>
+    <button id="saveGeminiKeyBtn" class="btn btn-accent full-width">Continue</button>
+    <button id="showKeyStepsBtn" class="link-btn">How do I get a Gemini API key?</button>
+  </div>
+  <div class="key-slide hidden" id="keySteps">
+    <div class="section-label">Setup guide</div><h1>Create a Gemini key</h1>
+    <ol><li>Open Google AI Studio.</li><li>Create or select a project.</li><li>Create an API key and restrict it to Gemini.</li><li>Copy it here. Do not share it.</li></ol>
+    <a class="help-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Open Google AI Studio ↗</a>
+    <button id="backToKeyBtn" class="link-btn">← Back</button>
+  </div>
+</div>
 <div class="container">
 
   <!-- ── HEADER ─────────────────────────── -->
@@ -106,6 +121,7 @@
 </div>
 
 
+<script src="config.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

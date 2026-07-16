@@ -19,15 +19,19 @@ router = APIRouter()
 # -------------------------------------------------------
 
 @router.get("/agents/{agent_id}/urls", response_model=List[SavedPageResponse])
-def get_agent_urls(agent_id: str, db: Session = Depends(get_db)):
+def get_agent_urls(agent_id: str, user_id: str, db: Session = Depends(get_db)):
     """
     Return all saved pages for a given agent, newest first.
     Each page includes a `display_url` — scheme/www stripped,
     truncated at 60 chars — ready for the sidebar.
     """
+    agent = db.query(Agent).filter(Agent.id == agent_id, Agent.user_id == user_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
     pages = (
         db.query(SavedPage)
-        .filter(SavedPage.agent_id == agent_id)
+        .filter(SavedPage.agent_id == agent_id, SavedPage.user_id == user_id)
         .order_by(SavedPage.created_at.desc())
         .all()
     )

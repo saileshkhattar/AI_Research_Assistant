@@ -39,14 +39,6 @@ export default function ChatWindow() {
     return () => window.removeEventListener("inbox-page-selected", handler);
   }, []);
 
-  // Once a chat becomes active, clear the pending page
-  useEffect(() => {
-    if (activeChatId) {
-      setPendingPageId(null);
-      pendingRef.current = null;
-    }
-  }, [activeChatId]);
-
   // Inbox guard: no active chat and no page has been clicked yet
   const inboxNeedsPage = isInbox && !activeChatId && !pendingPageId;
 
