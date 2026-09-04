@@ -4,6 +4,7 @@ import NewAgentButton from "../components/agents/NewAgentButton";
 import ChatList from "../components/sidebar/ChatList";
 import NewChatButton from "../components/sidebar/NewChatButton";
 import PageList from "../components/sidebar/PageList";
+import AccountSettings from "../components/settings/AccountSettings";
 
 export default function Sidebar() {
   return (
@@ -37,6 +38,7 @@ export default function Sidebar() {
 
       {/* New agent button */}
       <NewAgentButton />
+      <AccountSettings />
     </Box>
   );
 }

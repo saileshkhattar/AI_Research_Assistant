@@ -11,7 +11,7 @@ export function useMessages() {
     isStreaming,
     setIsStreaming,
   } = useChatContext();
-  const { userId, activeAgentId } = useAgentContext();
+  const { activeAgentId } = useAgentContext();
 
   /**
    * Send a message and stream the response.
@@ -38,13 +38,12 @@ export function useMessages() {
     setIsStreaming(true);
 
     try {
-      const { geminiApiKey } = await chromeStorage.getSession("geminiApiKey");
-      if (!geminiApiKey) throw new Error("Add your Gemini API key in the extension popup before chatting.");
+      const { authToken } = await chromeStorage.getSession("authToken");
+      if (!authToken) throw new Error("Sign in with Google before chatting.");
       const response = await fetch(`${getApiBaseUrl()}/query/stream`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Gemini-Api-Key": geminiApiKey },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({
-          user_id:  userId,
           agent_id: activeAgentId,
           chat_id:  chatId  || null,
           question: text,

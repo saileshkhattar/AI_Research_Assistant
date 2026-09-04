@@ -14,7 +14,6 @@ class RequestModel(BaseModel):
  
  
 class IngestRequest(RequestModel):
-    user_id: str = Field(min_length=1, max_length=64)
     agent_id: str = Field(min_length=1, max_length=64)
     url: str = Field(min_length=1, max_length=4_096)
     title: Optional[str] = Field(default=None, max_length=500)
@@ -30,7 +29,6 @@ class IngestRequest(RequestModel):
  
  
 class QueryRequest(RequestModel):
-    user_id: str = Field(min_length=1, max_length=64)
     agent_id: str = Field(min_length=1, max_length=64)
     chat_id: Optional[str] = Field(default=None, max_length=64)
     question: str = Field(min_length=1, max_length=MAX_MESSAGE_LENGTH)
@@ -38,12 +36,19 @@ class QueryRequest(RequestModel):
  
  
 class CreateAgentRequest(RequestModel):
-    user_id: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=MAX_NAME_LENGTH)
  
  
 class RenameChatRequest(RequestModel):
     title: str = Field(min_length=1, max_length=200)
+
+
+class GoogleSignInRequest(RequestModel):
+    access_token: str = Field(min_length=20, max_length=4096)
+
+
+class GeminiKeyRequest(RequestModel):
+    api_key: str = Field(min_length=20, max_length=256)
  
  
 class SavedPageResponse(BaseModel):

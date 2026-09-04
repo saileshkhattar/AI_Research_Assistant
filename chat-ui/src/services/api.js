@@ -3,13 +3,13 @@ import { chromeStorage } from "./chromeStorage.js";
 
 async function apiRequest(endpoint, options = {}) {
   const url = `${getApiBaseUrl()}${endpoint}`;
-  const { geminiApiKey } = await chromeStorage.getSession("geminiApiKey");
+  const { authToken } = await chromeStorage.getSession("authToken");
 
   const config = {
     method: options.method || "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(geminiApiKey ? { "X-Gemini-Api-Key": geminiApiKey } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...(options.headers || {}),
     },
   };
@@ -29,21 +29,22 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 export const UserAPI = {
-  createUser: () => apiRequest(`/users`, { method: "POST" }),
-  getUser: (userId) => apiRequest(`/users/${userId}`),
+  signInWithGoogle: (accessToken) => apiRequest(`/auth/google`, { method: "POST", body: { access_token: accessToken } }),
+  getMe: () => apiRequest(`/me`),
+  saveGeminiKey: (apiKey) => apiRequest(`/me/gemini-key`, { method: "PUT", body: { api_key: apiKey } }),
+  deleteGeminiKey: () => apiRequest(`/me/gemini-key`, { method: "DELETE" }),
 };
 
 export const AgentAPI = {
-  getAgents: (userId) => apiRequest(`/agents/${userId}`),
+  getAgents: () => apiRequest(`/agents`),
 
   createAgent: (data) =>
     apiRequest(`/agents`, { method: "POST", body: data }),
 
   // Returns SavedPageResponse[] — each item has display_url (clean) and url (full)
-  getAgentUrls: (agentId, userId) => apiRequest(`/agents/${agentId}/urls?user_id=${encodeURIComponent(userId)}`),
+  getAgentUrls: (agentId) => apiRequest(`/agents/${agentId}/urls`),
 
-  deleteAgent: (agentId, userId) =>
-    apiRequest(`/agents/${agentId}?user_id=${userId}`, { method: "DELETE" }),
+  deleteAgent: (agentId) => apiRequest(`/agents/${agentId}`, { method: "DELETE" }),
 };
 
 export const PageAPI = {
@@ -52,30 +53,26 @@ export const PageAPI = {
     apiRequest(`/ingest_page`, { method: "POST", body: data }),
 
   // Delete a page and its Chroma vectors
-  deletePage: (pageId, userId) =>
-    apiRequest(`/pages/${pageId}?user_id=${userId}`, { method: "DELETE" }),
+  deletePage: (pageId) => apiRequest(`/pages/${pageId}`, { method: "DELETE" }),
 };
 
 export const ChatAPI = {
-  getChatsByAgent: (agentId, userId) =>
-    apiRequest(`/chats/${agentId}/${userId}`),
+  getChatsByAgent: (agentId) => apiRequest(`/chats/${agentId}`),
 
   createChat: (data) =>
     apiRequest(`/chats`, { method: "POST", body: data }),
 
-  renameChat: (chatId, userId, title) =>
-    apiRequest(`/chats/${chatId}/title?user_id=${userId}`, {
+  renameChat: (chatId, title) =>
+    apiRequest(`/chats/${chatId}/title`, {
       method: "PATCH",
       body: { title },
     }),
 
-  deleteChat: (chatId, userId) =>
-    apiRequest(`/chats/${chatId}?user_id=${userId}`, { method: "DELETE" }),
+  deleteChat: (chatId) => apiRequest(`/chats/${chatId}`, { method: "DELETE" }),
 };
 
 export const MessageAPI = {
-  getMessages: (chatId, userId) =>
-    apiRequest(`/messages/${chatId}?user_id=${userId}`),
+  getMessages: (chatId) => apiRequest(`/messages/${chatId}`),
 };
 
 // Streaming queries are handled directly with fetch() in useMessages.js

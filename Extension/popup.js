@@ -2,7 +2,6 @@
 // STORAGE KEY CONSTANTS — must match background.js exactly
 // ─────────────────────────────────────────────────────────────
 const KEYS = {
-  USER_ID:         "userId",
   AGENTS:          "agents",
   ACTIVE_AGENT_ID: "activeAgentId",  // FIX: was "activeAgent" in old popup — mismatched background
 };
@@ -59,18 +58,27 @@ const el = {
 // STATE
 // ─────────────────────────────────────────────────────────────
 let agents   = [];
-let userId   = null;
 let currentTab = null;
+
+async function apiFetch(path, options = {}) {
+  const { authToken } = await chrome.storage.session.get("authToken");
+  return fetch(`${API}${path}`, {
+    ...options,
+    headers: { ...(options.headers || {}), ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+  });
+}
 
 // ─────────────────────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
-  const { geminiApiKey } = await chrome.storage.session.get("geminiApiKey");
-  if (!geminiApiKey) {
-    showKeySetup();
+  const { authToken } = await chrome.storage.session.get("authToken");
+  if (!authToken) {
+    showGoogleSignIn();
     return;
   }
+  const me = await fetch(`${API}/me`, { headers: { Authorization: `Bearer ${authToken}` } }).then((r) => r.ok ? r.json() : null);
+  if (!me?.has_gemini_key) { showKeySetup(); return; }
   // Trigger background identity init
   chrome.runtime.sendMessage({ action: "INIT_IDENTITY" });
 
@@ -96,11 +104,32 @@ function showKeySetup() {
   el.saveGeminiKey.onclick = async () => {
     const key = el.geminiKeyInput.value.trim();
     if (key.length < 20) { el.keyError.textContent = "Enter a valid Gemini API key."; el.keyError.classList.remove("hidden"); return; }
-    await chrome.storage.session.set({ geminiApiKey: key });
+    const { authToken } = await chrome.storage.session.get("authToken");
+    const response = await fetch(`${API}/me/gemini-key`, {
+      method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ api_key: key }),
+    });
+    if (!response.ok) { el.keyError.textContent = "Could not save your key."; el.keyError.classList.remove("hidden"); return; }
     window.location.reload();
   };
   el.showKeySteps.onclick = () => { el.keyEntry.classList.add("hidden"); el.keySteps.classList.remove("hidden"); };
   el.backToKey.onclick = () => { el.keySteps.classList.add("hidden"); el.keyEntry.classList.remove("hidden"); };
+}
+
+function showGoogleSignIn() {
+  el.keySetup.classList.remove("hidden");
+  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Private research setup</div><h1>Sign in to continue</h1><p>Use Google to securely save your research and encrypted Gemini key.</p><button id="googleSignInBtn" class="btn btn-accent full-width">Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
+  document.getElementById("googleSignInBtn").onclick = async () => {
+    try {
+      const result = await chrome.identity.getAuthToken({ interactive: true });
+      const googleToken = typeof result === "string" ? result : result?.token;
+      const response = await fetch(`${API}/auth/google`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ access_token: googleToken }) });
+      if (!response.ok) throw new Error();
+      const session = await response.json();
+      await chrome.storage.session.set({ authToken: session.access_token });
+      window.location.reload();
+    } catch { document.getElementById("keyError").textContent = "Google sign-in failed. Try again."; document.getElementById("keyError").classList.remove("hidden"); }
+  };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -115,7 +144,6 @@ async function loadState() {
     KEYS.USER_ID, KEYS.AGENTS, KEYS.ACTIVE_AGENT_ID,
   ]);
 
-  userId = storage[KEYS.USER_ID] || null;
   agents = storage[KEYS.AGENTS] || [];
 
   // If we have agents in storage, render immediately
@@ -125,18 +153,15 @@ async function loadState() {
   }
 
   // Always refresh from backend for latest state
-  if (userId) {
-    await refreshAgents();
-  }
+  await refreshAgents();
 }
 
 // ─────────────────────────────────────────────────────────────
 // FETCH AGENTS FROM BACKEND AND SYNC STORAGE
 // ─────────────────────────────────────────────────────────────
 async function refreshAgents() {
-  if (!userId) return;
   try {
-    const res = await fetch(`${API}/agents/${userId}`);
+    const res = await apiFetch(`/agents`);
     if (!res.ok) return;
     agents = await res.json();
     await chrome.storage.local.set({ [KEYS.AGENTS]: agents });
@@ -200,7 +225,7 @@ async function updatePageCount() {
   const agentId = el.select.value;
   if (!agentId) return;
   try {
-    const res = await fetch(`${API}/agents/${encodeURIComponent(agentId)}/urls?user_id=${encodeURIComponent(userId)}`);
+    const res = await apiFetch(`/agents/${encodeURIComponent(agentId)}/urls`);
     if (!res.ok) return;
     const pages = await res.json();
     el.pageCount.textContent = pages.length;
@@ -282,10 +307,10 @@ async function createAgent() {
   el.confirmCreate.textContent = "Creating…";
 
   try {
-    const res = await fetch(`${API}/agents`, {
+    const res = await apiFetch(`/agents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId, name }),
+      body: JSON.stringify({ name }),
     });
 
     if (!res.ok) {
@@ -328,7 +353,7 @@ async function showUrls() {
   el.urlsModal.classList.remove("hidden");
 
   try {
-    const res = await fetch(`${API}/agents/${encodeURIComponent(agentId)}/urls?user_id=${encodeURIComponent(userId)}`);
+    const res = await apiFetch(`/agents/${encodeURIComponent(agentId)}/urls`);
     const pages = await res.json();
 
     if (!pages.length) {
@@ -381,7 +406,7 @@ async function deletePage(pageId, itemEl) {
   itemEl.style.opacity = "0.4";
   itemEl.style.pointerEvents = "none";
   try {
-    const res = await fetch(`${API}/pages/${pageId}?user_id=${userId}`, {
+    const res = await apiFetch(`/pages/${pageId}`, {
       method: "DELETE",
     });
     if (res.ok) {

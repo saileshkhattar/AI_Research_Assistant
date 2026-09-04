@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -9,6 +9,8 @@ from requestSchemas.requestSchemas import IngestRequest, SavedPageResponse
 from helpers.urlHelper import normalize_url, check_if_url_exists, display_url
 from ragSetup.ragArchitecture import text_splitter
 from ragSetup.retrieverFactory import get_vectorstore
+from security import get_current_user
+from routers.userRouter import get_user_gemini_key
 from langchain_core.documents import Document
 
 router = APIRouter()
@@ -18,7 +20,7 @@ router = APIRouter()
 async def ingest_page(
     req: IngestRequest,
     db: Session = Depends(get_db),
-    gemini_api_key: str = Header(..., alias="X-Gemini-Api-Key", min_length=20, max_length=256),
+    user: User = Depends(get_current_user),
 ):
     """
     Normalise the URL, validate ownership, embed the page content into
@@ -26,13 +28,9 @@ async def ingest_page(
     """
     normalized = normalize_url(req.url)
 
-    user = db.query(User).filter(User.id == req.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User does not exist")
-
     agent = db.query(Agent).filter(
         Agent.id == req.agent_id,
-        Agent.user_id == req.user_id,
+        Agent.user_id == user.id,
     ).first()
     if not agent:
         raise HTTPException(status_code=403, detail="Agent does not belong to user")
@@ -41,7 +39,7 @@ async def ingest_page(
         raise HTTPException(status_code=400, detail="Page already saved for this agent")
 
     new_page = SavedPage(
-        user_id=req.user_id,
+        user_id=user.id,
         agent_id=req.agent_id,
         url=normalized,
         title=req.title or "",
@@ -53,7 +51,7 @@ async def ingest_page(
         document = Document(
             page_content=req.content,
             metadata={
-                "user_id": req.user_id,
+                "user_id": user.id,
                 "agent_id": req.agent_id,
                 "page_id": str(new_page.id),
                 "url": normalized,
@@ -61,7 +59,7 @@ async def ingest_page(
             },
         )
         docs = text_splitter.split_documents([document])
-        get_vectorstore(gemini_api_key).add_documents(docs)
+        get_vectorstore(get_user_gemini_key(db, user)).add_documents(docs)
         # NOTE: vectorstore.persist() removed — chromadb >= 0.4 auto-persists
 
     except Exception:
@@ -79,13 +77,13 @@ async def ingest_page(
 
 
 @router.delete("/pages/{page_id}")
-def delete_page(page_id: str, user_id: str, db: Session = Depends(get_db)):
+def delete_page(page_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """
     Delete a saved page from the DB and remove its vectors from Chroma.
     """
     page = db.query(SavedPage).filter(
         SavedPage.id == page_id,
-        SavedPage.user_id == user_id,
+        SavedPage.user_id == user.id,
     ).first()
 
     if not page:

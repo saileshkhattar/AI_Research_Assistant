@@ -1,37 +1,54 @@
-import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
- 
+
 from database import get_db
-from models.users import User
 from helpers.agentHelper import ensure_default_agents
- 
+from models.geminiKey import GeminiKey
+from models.users import User
+from requestSchemas.requestSchemas import GeminiKeyRequest, GoogleSignInRequest
+from security import create_session_token, decrypt_gemini_key, encrypt_gemini_key, get_current_user, verify_google_access_token
+
 router = APIRouter()
- 
- 
-@router.get("/users/{user_id}")
-def get_user(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+
+
+@router.post("/auth/google")
+async def sign_in_with_google(req: GoogleSignInRequest, db: Session = Depends(get_db)):
+    claims = await verify_google_access_token(req.access_token)
+    user = db.query(User).filter(User.google_sub == claims["sub"]).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"id": user.id}
- 
- 
-@router.post("/users")
-def create_user(db: Session = Depends(get_db)):
-    """
-    Creates a user if none exists, or returns the existing one.
-    This extension is single-user so we just return whoever is in the DB.
-    """
-    existing_user = db.query(User).first()
-    if existing_user:
-        return {"id": existing_user.id}
- 
-    new_user = User(id=str(uuid.uuid4()))
-    db.add(new_user)
+        user = User(google_sub=claims["sub"], email=claims["email"].lower())
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        ensure_default_agents(db, user.id)
+    return {"access_token": create_session_token(user), "user": {"id": user.id, "email": user.email}, "has_gemini_key": bool(user.gemini_key)}
+
+
+@router.get("/me")
+def get_me(user: User = Depends(get_current_user)):
+    return {"id": user.id, "email": user.email, "has_gemini_key": bool(user.gemini_key)}
+
+
+@router.put("/me/gemini-key", status_code=status.HTTP_204_NO_CONTENT)
+def save_gemini_key(req: GeminiKeyRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    record = db.query(GeminiKey).filter(GeminiKey.user_id == user.id).first()
+    if record:
+        record.ciphertext = encrypt_gemini_key(req.api_key)
+    else:
+        db.add(GeminiKey(user_id=user.id, ciphertext=encrypt_gemini_key(req.api_key)))
     db.commit()
-    db.refresh(new_user)
- 
-    ensure_default_agents(db, new_user.id)
- 
-    return {"id": new_user.id}
+
+
+@router.delete("/me/gemini-key", status_code=status.HTTP_204_NO_CONTENT)
+def delete_gemini_key(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    record = db.query(GeminiKey).filter(GeminiKey.user_id == user.id).first()
+    if record:
+        db.delete(record)
+        db.commit()
+
+
+def get_user_gemini_key(db: Session, user: User) -> str:
+    record = db.query(GeminiKey).filter(GeminiKey.user_id == user.id).first()
+    if not record:
+        raise HTTPException(status.HTTP_428_PRECONDITION_REQUIRED, "Add a Gemini API key in Settings")
+    return decrypt_gemini_key(record.ciphertext)

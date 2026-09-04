@@ -31,11 +31,11 @@ export default function PageList() {
   const fetchPages = useCallback(() => {
     if (!activeAgentId) return;
     setLoading(true);
-    AgentAPI.getAgentUrls(activeAgentId, userId)
+    AgentAPI.getAgentUrls(activeAgentId)
       .then((result) => setPages(result))
       .catch((err) => console.error("Failed to load pages:", err))
       .finally(() => setLoading(false));
-  }, [activeAgentId, userId]);
+  }, [activeAgentId]);
  
   useEffect(() => {
     setPages([]);
@@ -77,7 +77,7 @@ export default function PageList() {
     if (!userId) return;
     setDeletingId(pageId);
     try {
-      await PageAPI.deletePage(pageId, userId);
+      await PageAPI.deletePage(pageId);
       setPages((prev) => prev.filter((p) => p.id !== pageId));
       const chatForPage = chats.find((c) => c.page_id === pageId);
       if (chatForPage && chatForPage.id === activeChatId) startNewChat();

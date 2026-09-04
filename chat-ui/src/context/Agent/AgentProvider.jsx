@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { chromeStorage } from "../../services/chromeStorage.js";
-import { AgentAPI } from "../../services/api.js";
+import { AgentAPI, UserAPI } from "../../services/api.js";
 import { AgentContext } from "./AgentContext";
 
 export function AgentProvider({ children }) {
@@ -13,19 +13,18 @@ export function AgentProvider({ children }) {
     try {
       // FIX: original code used destructuring `const { userId, activeAgentId }`
       // which shadowed the outer state setters and both were always undefined.
-      const result = await chromeStorage.get(["userId", "activeAgentId"]);
-      const storedUserId = result.userId;
+      const result = await chromeStorage.get(["activeAgentId"]);
+      const { authToken } = await chromeStorage.getSession("authToken");
       const storedAgentId = result.activeAgentId;
 
-      if (!storedUserId) {
-        console.error("No user_id found in chrome storage");
+      if (!authToken) {
         setIsLoaded(true);
         return;
       }
 
-      setUserId(storedUserId);
-
-      const backendAgents = await AgentAPI.getAgents(storedUserId);
+      const me = await UserAPI.getMe();
+      setUserId(me.id);
+      const backendAgents = await AgentAPI.getAgents();
       setAgents(backendAgents);
 
       const agentId = storedAgentId || backendAgents[0]?.id;

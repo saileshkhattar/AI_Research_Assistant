@@ -8,6 +8,8 @@ from models.agents import Agent
 from models.savedPages import SavedPage
 from requestSchemas.requestSchemas import CreateAgentRequest, SavedPageResponse
 from helpers.urlHelper import display_url
+from models.users import User
+from security import get_current_user
 
 router = APIRouter()
 
@@ -19,19 +21,19 @@ router = APIRouter()
 # -------------------------------------------------------
 
 @router.get("/agents/{agent_id}/urls", response_model=List[SavedPageResponse])
-def get_agent_urls(agent_id: str, user_id: str, db: Session = Depends(get_db)):
+def get_agent_urls(agent_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """
     Return all saved pages for a given agent, newest first.
     Each page includes a `display_url` — scheme/www stripped,
     truncated at 60 chars — ready for the sidebar.
     """
-    agent = db.query(Agent).filter(Agent.id == agent_id, Agent.user_id == user_id).first()
+    agent = db.query(Agent).filter(Agent.id == agent_id, Agent.user_id == user.id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
     pages = (
         db.query(SavedPage)
-        .filter(SavedPage.agent_id == agent_id, SavedPage.user_id == user_id)
+        .filter(SavedPage.agent_id == agent_id, SavedPage.user_id == user.id)
         .order_by(SavedPage.created_at.desc())
         .all()
     )
@@ -50,19 +52,19 @@ def get_agent_urls(agent_id: str, user_id: str, db: Session = Depends(get_db)):
     ]
 
 
-@router.get("/agents/{user_id}")
-def get_agents(user_id: str, db: Session = Depends(get_db)):
+@router.get("/agents")
+def get_agents(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Return all agents belonging to a user."""
-    agents = db.query(Agent).filter(Agent.user_id == user_id).all()
+    agents = db.query(Agent).filter(Agent.user_id == user.id).all()
     return agents
 
 
 @router.post("/agents")
-def create_agent(req: CreateAgentRequest, db: Session = Depends(get_db)):
+def create_agent(req: CreateAgentRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Create a new custom agent."""
     agent = Agent(
         id=str(uuid.uuid4()),
-        user_id=req.user_id,
+        user_id=user.id,
         name=req.name,
         type="custom",
     )
@@ -73,11 +75,11 @@ def create_agent(req: CreateAgentRequest, db: Session = Depends(get_db)):
 
 
 @router.delete("/agents/{agent_id}")
-def delete_agent(agent_id: str, user_id: str, db: Session = Depends(get_db)):
+def delete_agent(agent_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Delete a custom agent and all its data. System agents are protected."""
     agent = db.query(Agent).filter(
         Agent.id == agent_id,
-        Agent.user_id == user_id,
+        Agent.user_id == user.id,
     ).first()
 
     if not agent:

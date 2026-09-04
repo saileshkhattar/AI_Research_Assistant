@@ -17,6 +17,10 @@ This repository currently uses an anonymous local user ID. It is adequate only f
 
 ## Gemini key and throttling
 
-The extension asks for a Gemini key before use and stores it in `chrome.storage.session` only. It is cleared when the browser restarts, is never written to the database, and is never logged. The key is sent only in the `X-Gemini-Api-Key` HTTPS request header to perform an embedding or generation request. Do not change this to `chrome.storage.local`: it is persistence, not a secure secret vault.
+After Google sign-in, the extension sends a Gemini key once over HTTPS. The backend encrypts it with Fernet before storing it in PostgreSQL, never returns it to the browser, and decrypts it only in memory to call Gemini. The extension keeps only its short-lived backend session token in `chrome.storage.session`; it never persists the Gemini key locally or sends it in ordinary chat requests.
 
 The backend applies in-process sliding-window limits: 10 streamed queries/minute, 12 page ingestions/minute, 60 other mutating requests/minute, and 180 reads/minute per client IP and endpoint. For a multi-instance deployment, replace `Backend/rateLimit.py` with a shared Redis or API-gateway limiter and key it to the authenticated account—not client IP. A `429` from Gemini is shown in the chat as a quota message; Gemini quotas are tied to the Google project rather than the API key and vary by tier. See the official [Gemini rate-limit documentation](https://ai.google.dev/gemini-api/docs/rate-limits).
+
+## Google OAuth + PostgreSQL setup
+
+Copy `Backend/.env.example` to `Backend/.env` and set every value. Use a fresh PostgreSQL database for this migration: the previous local SQLite schema cannot be safely altered by `create_all`. Create a Chrome Extension OAuth client in Google Cloud using the final published extension ID, then set the same client ID in `GOOGLE_OAUTH_CLIENT_ID` and `Extension/manifest.json`. The extension receives a Google access token through Chrome Identity; the backend validates it with Google, maps Google `sub` to an internal UUID, then issues its own seven-day bearer session. Every protected API route derives ownership from that session—never from a user ID in the request.

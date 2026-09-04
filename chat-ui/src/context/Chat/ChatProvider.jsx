@@ -23,7 +23,7 @@ export function ChatProvider({ children }) {
 
     const loadChats = async () => {
       try {
-        const backendChats = await ChatAPI.getChatsByAgent(activeAgentId, userId);
+        const backendChats = await ChatAPI.getChatsByAgent(activeAgentId);
         setChats(backendChats);
 
         const result = await chromeStorage.get(["activeChatId"]);
@@ -56,7 +56,7 @@ export function ChatProvider({ children }) {
 
     const loadMessages = async () => {
       try {
-        const backendMessages = await MessageAPI.getMessages(activeChatId, userId);
+        const backendMessages = await MessageAPI.getMessages(activeChatId);
         const normalised = backendMessages.map((m) => ({
           ...m,
           id: m.id ?? `loaded-${m.role}-${m.created_at}`,

@@ -1,6 +1,6 @@
 import uuid
  
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
  
@@ -9,9 +9,12 @@ from models.chat import Chat
 from models.message import Message
 from models.agents import Agent
 from models.savedPages import SavedPage
+from models.users import User
  
 from requestSchemas.requestSchemas import QueryRequest
 from ragSetup.ragServices import stream_generate_response, generate_chat_title
+from security import get_current_user
+from routers.userRouter import get_user_gemini_key
  
 router = APIRouter()
  
@@ -20,7 +23,7 @@ router = APIRouter()
 def query_stream(
     req: QueryRequest,
     db: Session = Depends(get_db),
-    gemini_api_key: str = Header(..., alias="X-Gemini-Api-Key", min_length=20, max_length=256),
+    user: User = Depends(get_current_user),
 ):
  
     chat_id = req.chat_id
@@ -30,7 +33,7 @@ def query_stream(
     # ─────────────────────────────────────────────────────────
     agent = db.query(Agent).filter(
         Agent.id == req.agent_id,
-        Agent.user_id == req.user_id,
+        Agent.user_id == user.id,
     ).first()
     if not agent:
         raise HTTPException(403, "Agent not found or does not belong to user")
@@ -39,7 +42,7 @@ def query_stream(
         page = db.query(SavedPage).filter(
             SavedPage.id == req.page_id,
             SavedPage.agent_id == req.agent_id,
-            SavedPage.user_id == req.user_id,
+            SavedPage.user_id == user.id,
         ).first()
         if not page:
             raise HTTPException(403, "Page does not belong to agent")
@@ -55,13 +58,13 @@ def query_stream(
             )
  
         try:
-            title = generate_chat_title(agent.type, req.question, gemini_api_key)
+            title = generate_chat_title(agent.type, req.question, get_user_gemini_key(db, user))
         except Exception:
             title = req.question[:60] or "New Chat"
  
         new_chat = Chat(
             id=str(uuid.uuid4()),
-            user_id=req.user_id,
+            user_id=user.id,
             agent_id=req.agent_id,
             page_id=req.page_id,   # None for general/custom, required for inbox
             title=title,
@@ -74,7 +77,7 @@ def query_stream(
     else:
         chat = db.query(Chat).filter(
             Chat.id == chat_id,
-            Chat.user_id == req.user_id,
+            Chat.user_id == user.id,
         ).first()
  
         if not chat:
@@ -90,13 +93,7 @@ def query_stream(
         # so ragServices can scope retrieval to the correct page even if the
         # frontend didn't send page_id explicitly.
         if not req.page_id and chat.page_id:
-            req = QueryRequest(
-                user_id=req.user_id,
-                agent_id=req.agent_id,
-                chat_id=req.chat_id,
-                question=req.question,
-                page_id=chat.page_id,
-            )
+            req = req.model_copy(update={"page_id": chat.page_id})
  
     # ─────────────────────────────────────────────────────────
     # Save user message
@@ -105,7 +102,7 @@ def query_stream(
         id=str(uuid.uuid4()),
         chat_id=chat_id,
         agent_id=req.agent_id,
-        user_id=req.user_id,
+        user_id=user.id,
         role="user",
         content=req.question,
     )
@@ -113,12 +110,12 @@ def query_stream(
     db.commit()
  
     # Snapshot values — the request-scoped db closes before the generator runs
-    _user_id  = req.user_id
+    _user_id  = user.id
     _agent_id = req.agent_id
     _chat_id  = chat_id
     _question = req.question
     _page_id  = req.page_id
-    _api_key = gemini_api_key
+    _api_key = get_user_gemini_key(db, user)
  
     def generator():
         full_response = ""

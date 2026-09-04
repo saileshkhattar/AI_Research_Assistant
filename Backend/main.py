@@ -11,6 +11,7 @@ import models.agents
 import models.savedPages
 import models.chat
 import models.message
+import models.geminiKey
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -43,7 +44,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_origin_regex=origin_regex,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "Authorization", "X-Gemini-Api-Key"],
+    allow_headers=["Content-Type", "Authorization"],
     expose_headers=["X-Chat-Id"], # required so JS can read the header cross-origin
 )
 
