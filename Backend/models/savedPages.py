@@ -21,7 +21,7 @@ class SavedPage(Base):
  
     title = Column(String)
  
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
  
     __table_args__ = (
         UniqueConstraint("agent_id", "url", "user_id", name="unique_agent_url"),

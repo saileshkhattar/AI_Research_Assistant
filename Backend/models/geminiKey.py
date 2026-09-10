@@ -7,4 +7,4 @@ class GeminiKey(Base):
     __tablename__ = "gemini_keys"
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     ciphertext = Column(String, nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)

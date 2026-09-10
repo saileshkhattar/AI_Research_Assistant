@@ -25,7 +25,7 @@ class Chat(Base):
  
     title = Column(String, default="New Chat")
  
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
  
     messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")
     agent = relationship("Agent")

@@ -27,7 +27,7 @@ class Message(Base):
  
     content = Column(String, nullable=False)
  
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
  
     chat = relationship("Chat", back_populates="messages")
     agent = relationship("Agent")

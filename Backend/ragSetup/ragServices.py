@@ -1,3 +1,5 @@
+import logging
+
 from ragSetup.retrieverFactory import build_retriever
 from ragSetup.ragArchitecture import get_model
 
@@ -5,6 +7,8 @@ from models.agents import Agent
 from models.chat import Chat
 from models.message import Message
 from models.savedPages import SavedPage
+
+logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -148,7 +152,7 @@ def stream_generate_response(
         # Build a retriever scoped ONLY to this one page
         retriever = build_retriever(user_id, agent_id, api_key, page_id=page.id)
         rewritten = rewrite_query(model, history, question)
-        print(f"[inbox] Rewritten query: {rewritten}")
+        logger.debug("[inbox] Rewritten query: %s", rewritten)
 
         docs = retriever.invoke(rewritten)
 
@@ -189,7 +193,7 @@ def stream_generate_response(
     # contain enough information, it must say so and stop.
     # ─────────────────────────────────────────────────────────────────────────
     rewritten = rewrite_query(model, history, question)
-    print(f"[{agent.type}] Rewritten query: {rewritten}")
+    logger.debug("[%s] Rewritten query: %s", agent.type, rewritten)
 
     retriever = build_retriever(user_id, agent_id, api_key, page_id)
     docs = retriever.invoke(rewritten)
