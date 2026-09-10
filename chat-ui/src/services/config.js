@@ -1,9 +1,7 @@
-const configuredBaseUrl = globalThis.__RESEARCH_ASSISTANT_CONFIG__?.apiBaseUrl;
+const configuredBaseUrl = (globalThis.__RESEARCH_ASSISTANT_CONFIG__ = {
+  apiBaseUrl: "http://localhost:8000",
+});
 
-/**
- * Returns the API origin configured at packaging/deployment time. Keeping this
- * outside application code prevents dev URLs from accidentally shipping.
- */
 export function getApiBaseUrl() {
   if (!configuredBaseUrl) {
     throw new Error("The extension is not configured with an API URL.");
