@@ -3,15 +3,8 @@
   "name": "AI Research Assistant",
   "version": "1.2.0",
   "description": "Save pages and chat with your research via RAG.",
-  "permissions": [
-    "scripting",
-    "storage",
-    "activeTab",
-    "identity"
-  ],
-  "host_permissions": [
-    "https://api.example.com/*"
-  ],
+  "permissions": ["scripting", "storage", "activeTab", "identity"],
+  "host_permissions": ["https://api.example.com/*"],
   "background": {
     "service_worker": "background.js"
   },
@@ -23,7 +16,7 @@
     "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'self'"
   },
   "oauth2": {
-    "client_id": "REPLACE_WITH_CHROME_EXTENSION_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "client_id": "173020552713-bpfjlam6gd6la8dd862o3kvs2o4mcnkp.apps.googleusercontent.com",
     "scopes": ["openid", "email", "profile"]
   }
 }

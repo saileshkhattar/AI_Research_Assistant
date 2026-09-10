@@ -1,10 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// STORAGE KEY CONSTANTS — must match background.js exactly
+// KEYS comes from keys.js (loaded before this script in popup.html) —
+// single source of truth shared with background.js.
 // ─────────────────────────────────────────────────────────────
-const KEYS = {
-  AGENTS:          "agents",
-  ACTIVE_AGENT_ID: "activeAgentId",  // FIX: was "activeAgent" in old popup — mismatched background
-};
 
 const API = (() => {
   try {
@@ -19,52 +16,55 @@ const API = (() => {
 // DOM REFS
 // ─────────────────────────────────────────────────────────────
 const el = {
-  select:         document.getElementById("agentSelect"),
-  helper:         document.getElementById("agentHelper"),
-  pageCount:      document.getElementById("pageCount"),
-  agentCount:     document.getElementById("agentCount"),
+  select: document.getElementById("agentSelect"),
+  helper: document.getElementById("agentHelper"),
+  pageCount: document.getElementById("pageCount"),
+  agentCount: document.getElementById("agentCount"),
   currentPageUrl: document.getElementById("currentPageUrl"),
 
-  createBtn:      document.getElementById("createAgentBtn"),
-  viewUrlsBtn:    document.getElementById("viewUrlsBtn"),
+  createBtn: document.getElementById("createAgentBtn"),
+  viewUrlsBtn: document.getElementById("viewUrlsBtn"),
 
-  agentModal:     document.getElementById("agentModal"),
-  confirmCreate:  document.getElementById("confirmCreateBtn"),
-  cancelCreate:   document.getElementById("cancelCreateBtn"),
-  cancelCreate2:  document.getElementById("cancelCreateBtn2"),
+  agentModal: document.getElementById("agentModal"),
+  confirmCreate: document.getElementById("confirmCreateBtn"),
+  cancelCreate: document.getElementById("cancelCreateBtn"),
+  cancelCreate2: document.getElementById("cancelCreateBtn2"),
   agentNameInput: document.getElementById("agentNameInput"),
-  createError:    document.getElementById("createError"),
+  createError: document.getElementById("createError"),
 
-  urlsModal:      document.getElementById("urlsModal"),
-  urlsList:       document.getElementById("urlsList"),
-  closeUrls:      document.getElementById("closeUrlsBtn"),
+  urlsModal: document.getElementById("urlsModal"),
+  urlsList: document.getElementById("urlsList"),
+  closeUrls: document.getElementById("closeUrlsBtn"),
 
-  saveBtn:        document.getElementById("savePageBtn"),
-  statusMsg:      document.getElementById("statusMessage"),
+  saveBtn: document.getElementById("savePageBtn"),
+  statusMsg: document.getElementById("statusMessage"),
 
-  askBtn:         document.getElementById("askBtn"),        // FIX: was undeclared var
-  questionBox:    document.getElementById("questionBox"),
-  keySetup:       document.getElementById("keySetup"),
-  keyEntry:       document.getElementById("keyEntry"),
-  keySteps:       document.getElementById("keySteps"),
+  askBtn: document.getElementById("askBtn"), // FIX: was undeclared var
+  questionBox: document.getElementById("questionBox"),
+  keySetup: document.getElementById("keySetup"),
+  keyEntry: document.getElementById("keyEntry"),
+  keySteps: document.getElementById("keySteps"),
   geminiKeyInput: document.getElementById("geminiKeyInput"),
-  saveGeminiKey:  document.getElementById("saveGeminiKeyBtn"),
-  showKeySteps:   document.getElementById("showKeyStepsBtn"),
-  backToKey:      document.getElementById("backToKeyBtn"),
-  keyError:       document.getElementById("keyError"),
+  saveGeminiKey: document.getElementById("saveGeminiKeyBtn"),
+  showKeySteps: document.getElementById("showKeyStepsBtn"),
+  backToKey: document.getElementById("backToKeyBtn"),
+  keyError: document.getElementById("keyError"),
 };
 
 // ─────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────
-let agents   = [];
+let agents = [];
 let currentTab = null;
 
 async function apiFetch(path, options = {}) {
   const { authToken } = await chrome.storage.session.get("authToken");
   return fetch(`${API}${path}`, {
     ...options,
-    headers: { ...(options.headers || {}), ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+    headers: {
+      ...(options.headers || {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
   });
 }
 
@@ -77,10 +77,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     showGoogleSignIn();
     return;
   }
-  const me = await fetch(`${API}/me`, { headers: { Authorization: `Bearer ${authToken}` } }).then((r) => r.ok ? r.json() : null);
-  if (!me?.has_gemini_key) { showKeySetup(); return; }
-  // Trigger background identity init
-  chrome.runtime.sendMessage({ action: "INIT_IDENTITY" });
+  const meRes = await apiFetch(`/me`);
+  if (!meRes.ok) {
+    showBanner(
+      "Could not reach the backend — check your connection and try again.",
+    );
+    showGoogleSignIn();
+    return;
+  }
+  const me = await meRes.json();
+  if (!me?.has_gemini_key) {
+    showKeySetup();
+    return;
+  }
 
   // Get current tab info
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -103,32 +112,57 @@ function showKeySetup() {
   el.keySetup.classList.remove("hidden");
   el.saveGeminiKey.onclick = async () => {
     const key = el.geminiKeyInput.value.trim();
-    if (key.length < 20) { el.keyError.textContent = "Enter a valid Gemini API key."; el.keyError.classList.remove("hidden"); return; }
-    const { authToken } = await chrome.storage.session.get("authToken");
-    const response = await fetch(`${API}/me/gemini-key`, {
-      method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+    if (key.length < 20) {
+      el.keyError.textContent = "Enter a valid Gemini API key.";
+      el.keyError.classList.remove("hidden");
+      return;
+    }
+    // Unified onto the shared apiFetch() helper (was hand-rolled fetch +
+    // manual token attachment) — a token already exists at this point
+    // in the flow, so there's no reason not to use it here too.
+    const response = await apiFetch(`/me/gemini-key`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api_key: key }),
     });
-    if (!response.ok) { el.keyError.textContent = "Could not save your key."; el.keyError.classList.remove("hidden"); return; }
+    if (!response.ok) {
+      el.keyError.textContent = "Could not save your key.";
+      el.keyError.classList.remove("hidden");
+      return;
+    }
     window.location.reload();
   };
-  el.showKeySteps.onclick = () => { el.keyEntry.classList.add("hidden"); el.keySteps.classList.remove("hidden"); };
-  el.backToKey.onclick = () => { el.keySteps.classList.add("hidden"); el.keyEntry.classList.remove("hidden"); };
+  el.showKeySteps.onclick = () => {
+    el.keyEntry.classList.add("hidden");
+    el.keySteps.classList.remove("hidden");
+  };
+  el.backToKey.onclick = () => {
+    el.keySteps.classList.add("hidden");
+    el.keyEntry.classList.remove("hidden");
+  };
 }
 
 function showGoogleSignIn() {
   el.keySetup.classList.remove("hidden");
-  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Private research setup</div><h1>Sign in to continue</h1><p>Use Google to securely save your research and encrypted Gemini key.</p><button id="googleSignInBtn" class="btn btn-accent full-width">Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
+  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Gemini key.</p><button id="googleSignInBtn" class="btn google-btn full-width"><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
   document.getElementById("googleSignInBtn").onclick = async () => {
     try {
       const result = await chrome.identity.getAuthToken({ interactive: true });
       const googleToken = typeof result === "string" ? result : result?.token;
-      const response = await fetch(`${API}/auth/google`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ access_token: googleToken }) });
+      const response = await fetch(`${API}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: googleToken }),
+      });
       if (!response.ok) throw new Error();
       const session = await response.json();
       await chrome.storage.session.set({ authToken: session.access_token });
       window.location.reload();
-    } catch { document.getElementById("keyError").textContent = "Google sign-in failed. Try again."; document.getElementById("keyError").classList.remove("hidden"); }
+    } catch {
+      document.getElementById("keyError").textContent =
+        "Google sign-in failed. Try again.";
+      document.getElementById("keyError").classList.remove("hidden");
+    }
   };
 }
 
@@ -141,7 +175,8 @@ async function loadState() {
     return;
   }
   const storage = await chrome.storage.local.get([
-    KEYS.USER_ID, KEYS.AGENTS, KEYS.ACTIVE_AGENT_ID,
+    KEYS.AGENTS,
+    KEYS.ACTIVE_AGENT_ID,
   ]);
 
   agents = storage[KEYS.AGENTS] || [];
@@ -162,15 +197,22 @@ async function loadState() {
 async function refreshAgents() {
   try {
     const res = await apiFetch(`/agents`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      showBanner("Could not refresh agents — showing your last known list.");
+      return;
+    }
+    clearBanner();
     agents = await res.json();
     await chrome.storage.local.set({ [KEYS.AGENTS]: agents });
 
-    const { [KEYS.ACTIVE_AGENT_ID]: current } = await chrome.storage.local.get(KEYS.ACTIVE_AGENT_ID);
+    const { [KEYS.ACTIVE_AGENT_ID]: current } = await chrome.storage.local.get(
+      KEYS.ACTIVE_AGENT_ID,
+    );
     renderDropdown(current);
     await updatePageCount();
   } catch (err) {
     console.error("refreshAgents failed:", err);
+    showBanner("Network error while refreshing agents.");
   }
 }
 
@@ -181,13 +223,17 @@ function renderDropdown(activeId) {
   el.select.innerHTML = "";
 
   // System agents first, then custom
-  const system = agents.filter((a) => a.type === "system_inbox" || a.type === "general");
-  const custom  = agents.filter((a) => a.type !== "system_inbox" && a.type !== "general");
+  const system = agents.filter(
+    (a) => a.type === "system_inbox" || a.type === "general",
+  );
+  const custom = agents.filter(
+    (a) => a.type !== "system_inbox" && a.type !== "general",
+  );
 
   [...system, ...custom].forEach((agent) => {
     const opt = document.createElement("option");
     opt.value = agent.id;
-    opt.text  = agent.name;
+    opt.text = agent.name;
     el.select.appendChild(opt);
   });
 
@@ -208,11 +254,14 @@ function renderDropdown(activeId) {
 // ─────────────────────────────────────────────────────────────
 function updateHelper() {
   const agent = agents.find((a) => a.id === el.select.value);
-  if (!agent) { el.helper.textContent = ""; return; }
+  if (!agent) {
+    el.helper.textContent = "";
+    return;
+  }
 
   const descriptions = {
     system_inbox: "Inbox — best for single-page questions.",
-    general:      "General — best for open-ended research.",
+    general: "General — best for open-ended research.",
   };
   el.helper.textContent = descriptions[agent.type] ?? "Custom knowledge base.";
 }
@@ -226,10 +275,15 @@ async function updatePageCount() {
   if (!agentId) return;
   try {
     const res = await apiFetch(`/agents/${encodeURIComponent(agentId)}/urls`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      showBanner("Could not refresh page count.");
+      return;
+    }
     const pages = await res.json();
     el.pageCount.textContent = pages.length;
-  } catch (_) {}
+  } catch (_) {
+    showBanner("Network error while fetching page count.");
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -251,10 +305,10 @@ function attachEvents() {
   };
 
   // Create agent modal
-  el.createBtn.onclick    = openCreateModal;
+  el.createBtn.onclick = openCreateModal;
   el.cancelCreate.onclick = closeCreateModal;
-  el.cancelCreate2.onclick= closeCreateModal;
-  el.confirmCreate.onclick= createAgent;
+  el.cancelCreate2.onclick = closeCreateModal;
+  el.confirmCreate.onclick = createAgent;
   el.agentNameInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") createAgent();
     if (e.key === "Escape") closeCreateModal();
@@ -262,7 +316,7 @@ function attachEvents() {
 
   // View URLs modal
   el.viewUrlsBtn.onclick = showUrls;
-  el.closeUrls.onclick   = () => el.urlsModal.classList.add("hidden");
+  el.closeUrls.onclick = () => el.urlsModal.classList.add("hidden");
 
   // Close modals on backdrop click
   el.agentModal.addEventListener("click", (e) => {
@@ -354,6 +408,10 @@ async function showUrls() {
 
   try {
     const res = await apiFetch(`/agents/${encodeURIComponent(agentId)}/urls`);
+    if (!res.ok) {
+      el.urlsList.innerHTML = `<div class="urls-empty">Failed to load pages (server error).</div>`;
+      return;
+    }
     const pages = await res.json();
 
     if (!pages.length) {
@@ -367,7 +425,8 @@ async function showUrls() {
       const item = document.createElement("div");
       item.className = "url-item";
 
-      const title   = page.title && page.title.trim() ? page.title : page.display_url;
+      const title =
+        page.title && page.title.trim() ? page.title : page.display_url;
       const display = page.display_url || page.url;
 
       item.innerHTML = `
@@ -396,7 +455,6 @@ async function showUrls() {
 
     // Update count in header after render
     el.pageCount.textContent = pages.length;
-
   } catch (err) {
     el.urlsList.innerHTML = `<div class="urls-empty">Failed to load pages.</div>`;
   }
@@ -444,9 +502,13 @@ async function savePage() {
 
   // Timeout fallback — background may not respond if content script is blocked
   setTimeout(() => {
+    // If the button is still disabled, SAVE_RESULT never arrived —
+    // re-enable it AND fix the stuck 'Saving page…' status text
+    // (was previously left stuck with no indication of failure).
     if (el.saveBtn.disabled) {
       el.saveBtn.disabled = false;
-      // Don't overwrite a result that already came in
+      setStatus("No response from extension — try again.", "error");
+      setTimeout(() => setStatus("", ""), 4000);
     }
   }, 8000);
 }
@@ -470,12 +532,38 @@ function setStatus(text, type) {
   el.statusMsg.className = "status-message" + (type ? ` ${type}` : "");
 }
 
+function showBanner(msg) {
+  const banner = document.getElementById("errorBanner");
+  if (!banner) return;
+  banner.textContent = msg;
+  banner.classList.remove("hidden");
+}
+
+function clearBanner() {
+  const banner = document.getElementById("errorBanner");
+  if (!banner) return;
+  banner.classList.add("hidden");
+}
+
 // ─────────────────────────────────────────────────────────────
 // OPEN CHAT UI
 // ─────────────────────────────────────────────────────────────
 function openChat() {
-  const chatUrl = chrome.runtime.getURL("chat-ui/index.html");
+  // FIX: the typed "Quick Ask" question used to be silently discarded —
+  // now passed through as URL params so chat-ui can pick it up and
+  // pre-fill / auto-send the question on load. chat-ui's own code needs
+  // a matching change to actually read these params — flagged separately.
+  const question = el.questionBox.value.trim();
+  const agentId = el.select.value;
+  const params = new URLSearchParams();
+  if (agentId) params.set("agent_id", agentId);
+  if (question) params.set("q", question);
+
+  const base = chrome.runtime.getURL("chat-ui/index.html");
+  const chatUrl = params.toString() ? `${base}?${params.toString()}` : base;
   chrome.tabs.create({ url: chatUrl });
+
+  el.questionBox.value = "";
 }
 
 // ─────────────────────────────────────────────────────────────
