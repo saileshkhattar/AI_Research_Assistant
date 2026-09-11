@@ -37,7 +37,7 @@ async function handlePageCaptured({ content, title, url }) {
     chrome.runtime.sendMessage({
       action: "SAVE_RESULT",
       ok: false,
-      error: "Sign in and add your Gemini API key first.",
+      error: "Sign in and add your Groq API key first.",
     });
     return;
   }

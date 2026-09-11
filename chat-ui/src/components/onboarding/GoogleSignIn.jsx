@@ -26,7 +26,7 @@ export default function GoogleSignIn() {
           <h1>Sign in to continue</h1>
           <p>
             Sign in with Google to securely keep your research and encrypted
-            Gemini API key across devices.
+            Groq API key across devices.
           </p>
           <button type="button" onClick={signIn}>
             Continue with Google

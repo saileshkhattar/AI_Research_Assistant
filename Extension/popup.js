@@ -113,7 +113,7 @@ function showKeySetup() {
   el.saveGeminiKey.onclick = async () => {
     const key = el.geminiKeyInput.value.trim();
     if (key.length < 20) {
-      el.keyError.textContent = "Enter a valid Gemini API key.";
+      el.keyError.textContent = "Enter a valid Groq API key.";
       el.keyError.classList.remove("hidden");
       return;
     }
@@ -144,22 +144,28 @@ function showKeySetup() {
 
 function showGoogleSignIn() {
   el.keySetup.classList.remove("hidden");
-  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Gemini key.</p><button id="googleSignInBtn" class="btn google-btn full-width"><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
+  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Groq key.</p><button id="googleSignInBtn" class="btn google-btn full-width"><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
   document.getElementById("googleSignInBtn").onclick = async () => {
     try {
       const result = await chrome.identity.getAuthToken({ interactive: true });
       const googleToken = typeof result === "string" ? result : result?.token;
+      if (!googleToken) {
+        throw new Error("Google did not return an access token.");
+      }
       const response = await fetch(`${API}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: googleToken }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || `Google sign-in failed (HTTP ${response.status}).`);
+      }
       const session = await response.json();
       await chrome.storage.session.set({ authToken: session.access_token });
       window.location.reload();
-    } catch {
-      document.getElementById("keyError").textContent =
+    } catch (error) {
+      document.getElementById("keyError").textContent = error.message ||
         "Google sign-in failed. Try again.";
       document.getElementById("keyError").classList.remove("hidden");
     }

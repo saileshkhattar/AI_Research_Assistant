@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { UserAPI } from "../../services/api.js";
 
-const KEY_HELP_URL = "https://aistudio.google.com/app/apikey";
+const KEY_HELP_URL = "https://console.groq.com/keys";
 
 export default function GeminiKeyOnboarding() {
   const [key, setKey] = useState("");
@@ -11,7 +11,7 @@ export default function GeminiKeyOnboarding() {
   const save = async (event) => {
     event.preventDefault();
     if (key.trim().length < 20)
-      return setError("Enter a valid Gemini API key.");
+      return setError("Enter a valid Groq API key.");
     await UserAPI.saveGeminiKey(key.trim());
     setKey("");
     window.location.reload();
@@ -22,13 +22,13 @@ export default function GeminiKeyOnboarding() {
       <section className={`key-card ${showSteps ? "show-steps" : ""}`}>
         <div className="key-panel">
           <span className="eyebrow">PRIVATE RESEARCH</span>
-          <h1>Connect Gemini</h1>
+          <h1>Connect Groq</h1>
           <p>
             Your key is encrypted server-side, never shown again, and used only
-            for your Gemini requests.
+            for your Groq requests.
           </p>
           <form onSubmit={save}>
-            <label htmlFor="gemini-key">Gemini API key</label>
+            <label htmlFor="gemini-key">Groq API key</label>
             <input
               id="gemini-key"
               type="password"
@@ -48,20 +48,20 @@ export default function GeminiKeyOnboarding() {
             type="button"
             onClick={() => setShowSteps(true)}
           >
-            How do I get a Gemini API key?
+            How do I get a Groq API key?
           </button>
         </div>
         <div className="key-panel steps-panel">
           <span className="eyebrow">SETUP GUIDE</span>
           <h1>Create a key</h1>
           <ol>
-            <li>Open Google AI Studio.</li>
-            <li>Sign in and create or select a project.</li>
-            <li>Create an API key, then restrict it to the Gemini API.</li>
+            <li>Open the Groq API Keys page.</li>
+            <li>Sign in or create a GroqCloud account.</li>
+            <li>Create a new API key.</li>
             <li>Copy it here. Never share it in chat or screenshots.</li>
           </ol>
           <a href={KEY_HELP_URL} target="_blank" rel="noreferrer">
-            Open Google AI Studio ↗
+            Open Groq API Keys ↗
           </a>
           <button
             className="text-button"
