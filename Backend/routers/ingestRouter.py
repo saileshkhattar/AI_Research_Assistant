@@ -9,8 +9,7 @@ from requestSchemas.requestSchemas import IngestRequest, SavedPageResponse
 from helpers.urlHelper import normalize_url, check_if_url_exists, display_url
 from ragSetup.ragArchitecture import text_splitter
 from ragSetup.retrieverFactory import get_vectorstore
-from security import get_current_user
-from routers.userRouter import get_user_gemini_key
+from consentGate import require_consent
 from langchain_core.documents import Document
 
 router = APIRouter()
@@ -20,7 +19,7 @@ router = APIRouter()
 async def ingest_page(
     req: IngestRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_consent),
 ):
     """
     Normalise the URL, validate ownership, embed the page content into
@@ -59,7 +58,7 @@ async def ingest_page(
             },
         )
         docs = text_splitter.split_documents([document])
-        get_vectorstore(get_user_gemini_key(db, user)).add_documents(docs)
+        get_vectorstore().add_documents(docs)
         # NOTE: vectorstore.persist() removed — chromadb >= 0.4 auto-persists
 
     except Exception:
@@ -77,7 +76,7 @@ async def ingest_page(
 
 
 @router.delete("/pages/{page_id}")
-def delete_page(page_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_page(page_id: str, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     """
     Delete a saved page from the DB and remove its vectors from Chroma.
     """

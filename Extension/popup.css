@@ -502,3 +502,77 @@ button, input, select, textarea { font: inherit; }
 .google-btn { min-height: 42px; margin-top: 20px; color: #3c4043; background: #fff; border: 1px solid #dadce0; font-size: 13px; box-shadow: 0 1px 2px rgba(60,64,67,.15); }.google-btn:hover:not(:disabled) { color: #202124; background: #f8faff; border-color: #c3c8cf; box-shadow: 0 2px 5px rgba(60,64,67,.2); }.google-logo { width: 18px; height: 18px; flex: 0 0 18px; }
 
 .modal { padding: 16px; z-index: 20; }.modal-backdrop { background: rgba(16,24,40,.45); }.modal-card { width: 100%; max-width: 340px; max-height: calc(100vh - 32px); background: #fff; border-color: var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(23,32,51,.12); }.modal-header { border-color: var(--line); }.modal-title { color: var(--ink); font-family: inherit; font-weight: 750; }.modal-close { color: var(--ink-secondary); }.modal-close:hover { color: var(--ink); background: #f0f4f9; }.modal-footer { justify-content: flex-end; border-color: var(--line); }.field-label { color: var(--ink-secondary); font-family: inherit; }.urls-list { max-height: 330px; }.url-item:hover { background: #f0f4f9; border-color: var(--line); }.url-title { color: var(--ink); font-family: inherit; }.url-display, .urls-empty { color: var(--ink-muted); font-family: inherit; }
+
+/* ─────────────────────────────────────────────────────
+   Consent gate (sign-in + re-consent screens)
+   ───────────────────────────────────────────────────── */
+.consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0;
+  cursor: pointer;
+}
+.consent-row input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+.consent-row span {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.consent-row a { color: var(--accent); text-decoration: underline; }
+
+/* ─────────────────────────────────────────────────────
+   Persistent sensitive-data notice (non-dismissible,
+   neutral styling — a standing notice, not an alert)
+   ───────────────────────────────────────────────────── */
+.sensitive-pill {
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 8px 0;
+}
+
+/* ─────────────────────────────────────────────────────
+   Header icon-only button (opens Account modal)
+   ───────────────────────────────────────────────────── */
+.btn-icon-only {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-icon-only:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────────────────
+   Account modal — delete-account danger zone
+   ───────────────────────────────────────────────────── */
+.danger-zone {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+.danger-copy {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 6px 0 12px;
+} 

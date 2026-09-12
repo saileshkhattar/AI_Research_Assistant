@@ -8,7 +8,7 @@ from models.message import Message
 from models.agents import Agent
 from models.users import User
 from models.savedPages import SavedPage
-from security import get_current_user
+from consentGate import require_consent
 from requestSchemas.requestSchemas import RenameChatRequest
 
 router = APIRouter()
@@ -23,7 +23,7 @@ def create_chat(
     page_id: str | None = None,
     title: str | None = None,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_consent),
 ):
     agent = db.query(Agent).filter(
         Agent.id == agent_id, Agent.user_id == user.id
@@ -57,7 +57,7 @@ def create_chat(
 # Get chats for agent
 # -------------------------------------------------------
 @router.get("/chats/{agent_id}")
-def get_chats(agent_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_chats(agent_id: str, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     agent = db.query(Agent).filter(
         Agent.id == agent_id, Agent.user_id == user.id
     ).first()
@@ -77,7 +77,7 @@ def get_chats(agent_id: str, db: Session = Depends(get_db), user: User = Depends
 # FIX: was missing `return messages` — every call returned null
 # -------------------------------------------------------
 @router.get("/messages/{chat_id}")
-def get_messages(chat_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_messages(chat_id: str, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     chat = db.query(Chat).filter(
         Chat.id == chat_id, Chat.user_id == user.id
     ).first()
@@ -99,7 +99,7 @@ def rename_chat(
     chat_id: str,
     req: RenameChatRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_consent),
 ):
     chat = db.query(Chat).filter(
         Chat.id == chat_id, Chat.user_id == user.id
@@ -117,7 +117,7 @@ def rename_chat(
 # Delete a chat
 # -------------------------------------------------------
 @router.delete("/chats/{chat_id}")
-def delete_chat(chat_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_chat(chat_id: str, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     chat = db.query(Chat).filter(
         Chat.id == chat_id, Chat.user_id == user.id
     ).first()

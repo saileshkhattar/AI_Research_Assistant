@@ -3,18 +3,21 @@ import { UserAPI } from "../../services/api.js";
 
 const KEY_HELP_URL = "https://console.groq.com/keys";
 
-export default function GeminiKeyOnboarding() {
+export default function GroqKeyOnboarding() {
   const [key, setKey] = useState("");
   const [showSteps, setShowSteps] = useState(false);
   const [error, setError] = useState("");
 
   const save = async (event) => {
     event.preventDefault();
-    if (key.trim().length < 20)
-      return setError("Enter a valid Groq API key.");
-    await UserAPI.saveGeminiKey(key.trim());
-    setKey("");
-    window.location.reload();
+    if (key.trim().length < 20) return setError("Enter a valid Groq API key.");
+    try {
+      await UserAPI.saveGroqKey(key.trim());
+      setKey("");
+      window.location.reload();
+    } catch (err) {
+      setError(err?.message || "Could not save that key. Please try again.");
+    }
   };
 
   return (
@@ -28,9 +31,9 @@ export default function GeminiKeyOnboarding() {
             for your Groq requests.
           </p>
           <form onSubmit={save}>
-            <label htmlFor="gemini-key">Groq API key</label>
+            <label htmlFor="groq-key">Groq API key</label>
             <input
-              id="gemini-key"
+              id="groq-key"
               type="password"
               value={key}
               onChange={(e) => {
@@ -55,13 +58,13 @@ export default function GeminiKeyOnboarding() {
           <span className="eyebrow">SETUP GUIDE</span>
           <h1>Create a key</h1>
           <ol>
-            <li>Open the Groq API Keys page.</li>
-            <li>Sign in or create a GroqCloud account.</li>
+            <li>Open the Groq Console.</li>
+            <li>Sign in and go to API Keys.</li>
             <li>Create a new API key.</li>
             <li>Copy it here. Never share it in chat or screenshots.</li>
           </ol>
           <a href={KEY_HELP_URL} target="_blank" rel="noreferrer">
-            Open Groq API Keys ↗
+            Open Groq Console ↗
           </a>
           <button
             className="text-button"

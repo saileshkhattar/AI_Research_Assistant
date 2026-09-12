@@ -54,7 +54,9 @@ async function handlePageCaptured({ content, title, url }) {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const msg = err.detail || `HTTP ${res.status}`;
+      const msg =
+        (typeof err.detail === "object" ? err.detail?.message : err.detail) ||
+        `HTTP ${res.status}`;
       console.warn("Ingest response:", msg);
       chrome.runtime.sendMessage({
         action: "SAVE_RESULT",

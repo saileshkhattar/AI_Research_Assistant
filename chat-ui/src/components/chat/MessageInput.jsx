@@ -1,40 +1,63 @@
 import { useState } from "react";
 import { Box, TextField, IconButton, Paper } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
- 
-export default function MessageInput({ onSend, isStreaming, disabled = false, placeholder }) {
+
+export default function MessageInput({
+  onSend,
+  isStreaming,
+  disabled = false,
+  placeholder,
+}) {
   const [message, setMessage] = useState("");
- 
+
   const isDisabled = isStreaming || disabled;
- 
+
   const handleSend = () => {
     if (!message.trim() || isDisabled) return;
     if (onSend) onSend(message);
     setMessage("");
   };
- 
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
- 
+
   const canSend = message.trim().length > 0 && !isDisabled;
- 
+
   const resolvedPlaceholder =
-    placeholder ||
-    (isStreaming ? "Waiting for response…" : "Send a message…");
- 
+    placeholder || (isStreaming ? "Waiting for response…" : "Send a message…");
+
   return (
     <Box
       sx={{
         p: 2.5,
         borderTop: "1px solid #1e1e27",
-          backgroundColor: "#0b1020",
+        backgroundColor: "#0b1020",
         flexShrink: 0,
       }}
     >
+      <Box
+        sx={{
+          mb: 1,
+          px: 1.25,
+          py: 0.6,
+          borderRadius: "6px",
+          backgroundColor: "#131b2f",
+          border: "1px solid #232f47",
+          fontFamily: "'DM Mono', monospace",
+          fontSize: "0.62rem",
+          color: "#94a3b8",
+          letterSpacing: "0.02em",
+          lineHeight: 1.4,
+        }}
+      >
+        Don't save or send sensitive personal, medical, or financial
+        information.
+      </Box>
+
       <Paper
         elevation={0}
         sx={{
@@ -106,7 +129,7 @@ export default function MessageInput({ onSend, isStreaming, disabled = false, pl
           <ArrowUpwardIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </Paper>
- 
+
       <Box
         sx={{
           mt: 1,
@@ -117,7 +140,9 @@ export default function MessageInput({ onSend, isStreaming, disabled = false, pl
           letterSpacing: "0.03em",
         }}
       >
-        {isStreaming ? "generating response…" : "Enter to send · Shift+Enter for new line"}
+        {isStreaming
+          ? "generating response…"
+          : "Enter to send · Shift+Enter for new line"}
       </Box>
     </Box>
   );

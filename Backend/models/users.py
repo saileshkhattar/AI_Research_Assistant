@@ -17,4 +17,4 @@ class User(Base):
     agents = relationship("Agent", cascade="all, delete-orphan")
     chats = relationship("Chat", cascade="all, delete-orphan")
     messages = relationship("Message", cascade="all, delete-orphan")
-    gemini_key = relationship("GeminiKey", cascade="all, delete-orphan", uselist=False)
+    provider_keys = relationship("ProviderKey", cascade="all, delete-orphan")

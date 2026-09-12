@@ -1,12 +1,7 @@
 import os
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-
-# Load local configuration before importing database.py, which reads
-# DATABASE_URL during module initialization.
-load_dotenv()
 
 from database import Base, engine
 
@@ -16,7 +11,9 @@ import models.agents
 import models.savedPages
 import models.chat
 import models.message
-import models.geminiKey
+import models.providerKeys
+import models.consent
+import models.deletionLog
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -26,6 +23,8 @@ from routers.userRouter import router as users_router
 from routers.agentRouter import router as agents_router
 from routers.chatRouter import router as chat_router
 from routers.queryStreamRouter import router as query_router
+from routers.consentRouter import router as consent_router
+from routers.accountRouter import router as account_router
 from rateLimit import limiter
 
 app = FastAPI(title="Research Extension API", docs_url=None, redoc_url=None)
@@ -56,12 +55,14 @@ app.add_middleware(
 RATE_LIMITS = {
     "/query/stream": 10,
     "/ingest_page": 12,
+    "/consent": 5,
+    "/account": 3,
 }
 
 
 @app.middleware("http")
 async def rate_limit_requests(request: Request, call_next):
-    """Throttle costly Gemini work more tightly than ordinary CRUD requests."""
+    """Throttle costly LLM/embedding work more tightly than ordinary CRUD requests."""
     if request.method == "OPTIONS":
         return await call_next(request)
     client = request.client.host if request.client else "unknown"
@@ -80,15 +81,10 @@ app.include_router(agents_router)
 app.include_router(chat_router)
 app.include_router(ingestRouter.router)
 app.include_router(query_router)
+app.include_router(consent_router)
+app.include_router(account_router)
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-
-
-
-
-

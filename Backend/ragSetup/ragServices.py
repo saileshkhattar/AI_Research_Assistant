@@ -53,7 +53,7 @@ def rewrite_query(model, history: str, question: str) -> str:
     return response.content.strip()
 
 
-def generate_chat_title(agent_type: str, first_message: str, api_key: str) -> str:
+def generate_chat_title(agent_type: str, first_message: str, groq_api_key: str) -> str:
     """Generate a short title (3-6 words) from the first user message."""
     try:
         prompt = (
@@ -61,7 +61,7 @@ def generate_chat_title(agent_type: str, first_message: str, api_key: str) -> st
             "Return only the title — no quotes, no punctuation at the end.\n\n"
             f"Message: {first_message}\n\nTitle:"
         )
-        response = get_model(api_key).invoke(prompt)
+        response = get_model(groq_api_key).invoke(prompt)
         title = response.content.strip().strip('"').strip("'")
         return title if title else first_message[:60]
     except Exception:
@@ -87,7 +87,7 @@ def stream_generate_response(
     chat_id: str,
     question: str,
     page_id: str | None = None,
-    api_key: str = "",
+    groq_api_key: str = "",
 ):
     """
     Route the request to the correct pipeline based on agent type:
@@ -98,8 +98,12 @@ def stream_generate_response(
       knowledge /
       custom       → RAG scoped to the agent's entire knowledge base.
                      Strictly context-bound — refuses to answer outside context.
+
+    LLM calls (chat + query rewriting) use the caller's own Groq key.
+    Embeddings (inside build_retriever) use the server's shared Hugging
+    Face key — no key needs to be threaded through for that.
     """
-    model = get_model(api_key)
+    model = get_model(groq_api_key)
     agent = db.query(Agent).filter(
         Agent.id == agent_id,
         Agent.user_id == user_id,
@@ -150,7 +154,7 @@ def stream_generate_response(
             return
 
         # Build a retriever scoped ONLY to this one page
-        retriever = build_retriever(user_id, agent_id, api_key, page_id=page.id)
+        retriever = build_retriever(user_id, agent_id, page_id=page.id)
         rewritten = rewrite_query(model, history, question)
         logger.debug("[inbox] Rewritten query: %s", rewritten)
 
@@ -195,7 +199,7 @@ def stream_generate_response(
     rewritten = rewrite_query(model, history, question)
     logger.debug("[%s] Rewritten query: %s", agent.type, rewritten)
 
-    retriever = build_retriever(user_id, agent_id, api_key, page_id)
+    retriever = build_retriever(user_id, agent_id, page_id)
     docs = retriever.invoke(rewritten)
 
     if not docs:

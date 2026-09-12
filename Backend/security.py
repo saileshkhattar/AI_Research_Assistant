@@ -112,6 +112,21 @@ def decrypt_secret(ciphertext_b64: str) -> str:
     return plaintext
 
 
+def forget_cached_secret(ciphertext_b64: str) -> None:
+    """Purge a decrypted value from the Redis cache immediately.
+
+    Used on account deletion so a just-deleted user's plaintext key can't
+    keep serving from cache for the remainder of its TTL. Best-effort — a
+    cache-unavailable error here shouldn't block deletion, since the
+    ciphertext (and the row it came from) is about to be gone anyway and
+    the entry will age out naturally.
+    """
+    try:
+        _redis().delete(_cache_key(ciphertext_b64))
+    except redis.RedisError:
+        pass
+
+
 
 def create_session_token(user: User) -> str:
     return jwt.encode(
@@ -153,15 +168,3 @@ async def verify_google_access_token(access_token: str) -> dict:
     if claims.get("verified_email") not in ("true", True):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google email must be verified")
     return claims
-
-
-def encrypt_gemini_key(key: str) -> str:
-    # NOTE: kept under this name for now to avoid touching every call site
-    # in the same change as the KMS migration. Will be renamed to a
-    # provider-agnostic name (e.g. encrypt_provider_key) alongside the
-    # Groq/HF swap, together with the GeminiKey model/table.
-    return encrypt_secret(key)
-
-
-def decrypt_gemini_key(ciphertext: str) -> str:
-    return decrypt_secret(ciphertext)

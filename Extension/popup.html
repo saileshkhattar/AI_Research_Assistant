@@ -8,19 +8,30 @@
 
 <body>
 <div id="keySetup" class="key-setup hidden">
+  <div class="key-slide hidden" id="consentSlide">
+    <div class="section-label">Before you continue</div>
+    <h1 id="consentHeading">Terms &amp; Privacy</h1>
+    <p id="consentIntro">Please review and accept our Terms of Service and Privacy Policy.</p>
+    <label class="consent-row">
+      <input type="checkbox" id="consentCheckbox"/>
+      <span>I agree to the <a href="https://example.com/terms" target="_blank" rel="noreferrer">Terms of Service</a> and <a href="https://example.com/privacy" target="_blank" rel="noreferrer">Privacy Policy</a></span>
+    </label>
+    <div id="consentError" class="error-text hidden"></div>
+    <button id="consentContinueBtn" class="btn btn-accent full-width" disabled>Continue</button>
+  </div>
   <div class="key-slide" id="keyEntry">
     <div class="section-label">Private research setup</div>
     <h1>Connect Groq</h1>
     <p>Your API key is kept only for this browser session and is never stored in our database.</p>
-    <input id="geminiKeyInput" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Groq API key"/>
+    <input id="groqKeyInput" class="input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Groq API key"/>
     <div id="keyError" class="error-text hidden"></div>
-    <button id="saveGeminiKeyBtn" class="btn btn-accent full-width">Continue</button>
+    <button id="saveGroqKeyBtn" class="btn btn-accent full-width">Continue</button>
     <button id="showKeyStepsBtn" class="link-btn">How do I get a Groq API key?</button>
   </div>
   <div class="key-slide hidden" id="keySteps">
     <div class="section-label">Setup guide</div><h1>Create a Groq key</h1>
-    <ol><li>Open the Groq API Keys page.</li><li>Sign in or create a GroqCloud account.</li><li>Create a new API key.</li><li>Copy it here. Do not share it.</li></ol>
-    <a class="help-link" href="https://console.groq.com/keys" target="_blank" rel="noreferrer">Open Groq API Keys ↗</a>
+    <ol><li>Open the Groq Console.</li><li>Sign in and go to API Keys.</li><li>Create a new API key.</li><li>Copy it here. Do not share it.</li></ol>
+    <a class="help-link" href="https://console.groq.com/keys" target="_blank" rel="noreferrer">Open Groq Console ↗</a>
     <button id="backToKeyBtn" class="link-btn">← Back</button>
   </div>
 </div>
@@ -42,6 +53,7 @@
         <span class="stat-val" id="agentCount">0</span>
         <span class="stat-lbl">agents</span>
       </div>
+      <button id="accountBtn" class="btn-icon-only" title="Account">⚙</button>
     </div>
   </header>
 
@@ -75,6 +87,7 @@
   <!-- ── QUICK ASK ─────────────────────── -->
   <section class="section" style="flex:1;">
     <div class="section-label">Quick Ask</div>
+    <div class="sensitive-pill">Don't save or send sensitive personal, medical, or financial information.</div>
     <textarea
       id="questionBox"
       class="textarea"
@@ -118,6 +131,35 @@
       <button id="closeUrlsBtn" class="modal-close">✕</button>
     </div>
     <div id="urlsList" class="urls-list"></div>
+  </div>
+</div>
+
+
+<!-- ── ACCOUNT MODAL ─────────────────── -->
+<div id="accountModal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title">Account</span>
+      <button id="closeAccountBtn" class="modal-close">✕</button>
+    </div>
+    <div class="modal-body" id="accountModalBody">
+      <button id="manageGroqKeyBtn" class="btn btn-outline full-width">Manage Groq API key</button>
+
+      <div class="danger-zone">
+        <div class="section-label" style="color: var(--danger);">Delete account</div>
+        <p class="danger-copy">
+          This permanently deletes your account, saved pages, chats, and stored API key.
+          This cannot be undone.
+        </p>
+        <label class="field-label">Type <strong>DELETE</strong> to confirm</label>
+        <input id="deleteConfirmInput" class="input" placeholder="DELETE" autocomplete="off"/>
+        <div id="deleteError" class="error-text hidden"></div>
+        <button id="confirmDeleteBtn" class="btn btn-danger full-width" disabled style="margin-top:10px;">
+          Delete my account
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 

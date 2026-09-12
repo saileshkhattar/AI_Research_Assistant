@@ -47,7 +47,7 @@ class GoogleSignInRequest(RequestModel):
     access_token: str = Field(min_length=20, max_length=4096)
 
 
-class GeminiKeyRequest(RequestModel):
+class ProviderKeyRequest(RequestModel):
     api_key: str = Field(min_length=20, max_length=256)
  
  

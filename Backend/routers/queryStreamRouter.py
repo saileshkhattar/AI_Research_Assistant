@@ -13,8 +13,8 @@ from models.users import User
  
 from requestSchemas.requestSchemas import QueryRequest
 from ragSetup.ragServices import stream_generate_response, generate_chat_title
-from security import get_current_user
-from routers.userRouter import get_user_gemini_key
+from consentGate import require_consent
+from routers.userRouter import get_user_provider_key
  
 router = APIRouter()
  
@@ -23,14 +23,11 @@ router = APIRouter()
 def query_stream(
     req: QueryRequest,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_consent),
 ):
  
     chat_id = req.chat_id
  
-    # ─────────────────────────────────────────────────────────
-    # Auto-create chat if none provided
-    # ─────────────────────────────────────────────────────────
     agent = db.query(Agent).filter(
         Agent.id == req.agent_id,
         Agent.user_id == user.id,
@@ -58,7 +55,7 @@ def query_stream(
             )
  
         try:
-            title = generate_chat_title(agent.type, req.question, get_user_gemini_key(db, user))
+            title = generate_chat_title(agent.type, req.question, get_user_provider_key(db, user, "groq"))
         except Exception:
             title = req.question[:60] or "New Chat"
  
@@ -115,14 +112,14 @@ def query_stream(
     _chat_id  = chat_id
     _question = req.question
     _page_id  = req.page_id
-    _api_key = get_user_gemini_key(db, user)
+    _groq_api_key = get_user_provider_key(db, user, "groq")
  
     def generator():
         full_response = ""
         gen_db = SessionLocal()
         try:
             for token in stream_generate_response(
-                gen_db, _user_id, _agent_id, _chat_id, _question, _page_id, _api_key
+                gen_db, _user_id, _agent_id, _chat_id, _question, _page_id, _groq_api_key
             ):
                 full_response += token
                 yield token
@@ -141,11 +138,11 @@ def query_stream(
         except Exception as e:
             gen_db.rollback()
             message = str(e).lower()
-            if "resource_exhausted" in message or "429" in message or "quota" in message:
-                yield "\n\n[RATE_LIMITED] Gemini has reached a temporary quota. Try again later or review your Gemini API plan."
+            if "rate_limit" in message or "429" in message or "quota" in message:
+                yield "\n\n[RATE_LIMITED] Groq has reached a temporary quota. Try again later or review your Groq API plan."
             else:
                 # Do not expose provider exceptions; they can contain request details.
-                yield "\n\n[Error: Gemini could not complete this request. Check your API key and try again.]"
+                yield "\n\n[Error: Groq could not complete this request. Check your API key and try again.]"
         finally:
             gen_db.close()
  

@@ -1,23 +1,26 @@
-import { useState } from "react";
 import { chromeStorage } from "../../services/chromeStorage.js";
-import { UserAPI } from "../../services/api.js";
+import { ConsentAPI, UserAPI } from "../../services/api.js";
+import ConsentGate from "./ConsentGate.jsx";
 
 export default function GoogleSignIn() {
-  const [error, setError] = useState("");
-  const signIn = async () => {
-    try {
-      const result = await chrome.identity.getAuthToken({ interactive: true });
-      const accessToken = typeof result === "string" ? result : result?.token;
-      if (!accessToken)
-        throw new Error("Google did not return an access token.");
-      const session = await UserAPI.signInWithGoogle(accessToken);
-      await chromeStorage.setSession({ authToken: session.access_token });
-      // Providers bootstrap from the signed-in session on a clean page load.
-      window.location.reload();
-    } catch {
-      setError("Google sign-in failed. Please try again.");
-    }
+  const handleAccept = async () => {
+    const result = await chrome.identity.getAuthToken({ interactive: true });
+    const accessToken = typeof result === "string" ? result : result?.token;
+    if (!accessToken) throw new Error("Google did not return an access token.");
+
+    const session = await UserAPI.signInWithGoogle(accessToken);
+    await chromeStorage.setSession({ authToken: session.access_token });
+
+    // The checkbox in ConsentGate IS the user's consent — record it
+    // server-side right away, before letting them into a usable session.
+    // The server always stamps its own current ToS/Privacy version here;
+    // this call carries no version number the client could spoof.
+    await ConsentAPI.accept();
+
+    // Providers bootstrap from the signed-in session on a clean page load.
+    window.location.reload();
   };
+
   return (
     <main className="key-onboarding">
       <section className="key-card">
@@ -28,10 +31,11 @@ export default function GoogleSignIn() {
             Sign in with Google to securely keep your research and encrypted
             Groq API key across devices.
           </p>
-          <button type="button" onClick={signIn}>
-            Continue with Google
-          </button>
-          {error && <p className="key-error">{error}</p>}
+          <ConsentGate
+            buttonLabel="Continue with Google"
+            busyLabel="Signing in…"
+            onAccept={handleAccept}
+          />
         </div>
       </section>
     </main>

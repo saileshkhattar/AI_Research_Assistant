@@ -9,7 +9,7 @@ from models.savedPages import SavedPage
 from requestSchemas.requestSchemas import CreateAgentRequest, SavedPageResponse
 from helpers.urlHelper import display_url
 from models.users import User
-from security import get_current_user
+from consentGate import require_consent
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ router = APIRouter()
 # -------------------------------------------------------
 
 @router.get("/agents/{agent_id}/urls", response_model=List[SavedPageResponse])
-def get_agent_urls(agent_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_agent_urls(agent_id: str, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     """
     Return all saved pages for a given agent, newest first.
     Each page includes a `display_url` — scheme/www stripped,
@@ -53,14 +53,14 @@ def get_agent_urls(agent_id: str, db: Session = Depends(get_db), user: User = De
 
 
 @router.get("/agents")
-def get_agents(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_agents(db: Session = Depends(get_db), user: User = Depends(require_consent)):
     """Return all agents belonging to a user."""
     agents = db.query(Agent).filter(Agent.user_id == user.id).all()
     return agents
 
 
 @router.post("/agents")
-def create_agent(req: CreateAgentRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def create_agent(req: CreateAgentRequest, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     """Create a new custom agent."""
     agent = Agent(
         id=str(uuid.uuid4()),
@@ -75,7 +75,7 @@ def create_agent(req: CreateAgentRequest, db: Session = Depends(get_db), user: U
 
 
 @router.delete("/agents/{agent_id}")
-def delete_agent(agent_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_agent(agent_id: str, db: Session = Depends(get_db), user: User = Depends(require_consent)):
     """Delete a custom agent and all its data. System agents are protected."""
     agent = db.query(Agent).filter(
         Agent.id == agent_id,

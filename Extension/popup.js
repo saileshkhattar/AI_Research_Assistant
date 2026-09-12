@@ -44,11 +44,27 @@ const el = {
   keySetup: document.getElementById("keySetup"),
   keyEntry: document.getElementById("keyEntry"),
   keySteps: document.getElementById("keySteps"),
-  geminiKeyInput: document.getElementById("geminiKeyInput"),
-  saveGeminiKey: document.getElementById("saveGeminiKeyBtn"),
+  groqKeyInput: document.getElementById("groqKeyInput"),
+  saveGroqKey: document.getElementById("saveGroqKeyBtn"),
   showKeySteps: document.getElementById("showKeyStepsBtn"),
   backToKey: document.getElementById("backToKeyBtn"),
   keyError: document.getElementById("keyError"),
+
+  consentSlide: document.getElementById("consentSlide"),
+  consentHeading: document.getElementById("consentHeading"),
+  consentIntro: document.getElementById("consentIntro"),
+  consentCheckbox: document.getElementById("consentCheckbox"),
+  consentError: document.getElementById("consentError"),
+  consentContinueBtn: document.getElementById("consentContinueBtn"),
+
+  accountBtn: document.getElementById("accountBtn"),
+  accountModal: document.getElementById("accountModal"),
+  closeAccountBtn: document.getElementById("closeAccountBtn"),
+  manageGroqKeyBtn: document.getElementById("manageGroqKeyBtn"),
+  accountModalBody: document.getElementById("accountModalBody"),
+  deleteConfirmInput: document.getElementById("deleteConfirmInput"),
+  deleteError: document.getElementById("deleteError"),
+  confirmDeleteBtn: document.getElementById("confirmDeleteBtn"),
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -86,7 +102,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
   const me = await meRes.json();
-  if (!me?.has_gemini_key) {
+  if (!me?.consent_current) {
+    showConsentRequired();
+    return;
+  }
+  if (!me?.has_groq_key) {
     showKeySetup();
     return;
   }
@@ -110,8 +130,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function showKeySetup() {
   el.keySetup.classList.remove("hidden");
-  el.saveGeminiKey.onclick = async () => {
-    const key = el.geminiKeyInput.value.trim();
+  el.consentSlide.classList.add("hidden");
+  el.keyEntry.classList.remove("hidden");
+  el.saveGroqKey.onclick = async () => {
+    const key = el.groqKeyInput.value.trim();
     if (key.length < 20) {
       el.keyError.textContent = "Enter a valid Groq API key.";
       el.keyError.classList.remove("hidden");
@@ -120,7 +142,7 @@ function showKeySetup() {
     // Unified onto the shared apiFetch() helper (was hand-rolled fetch +
     // manual token attachment) — a token already exists at this point
     // in the flow, so there's no reason not to use it here too.
-    const response = await apiFetch(`/me/gemini-key`, {
+    const response = await apiFetch(`/me/keys/groq`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api_key: key }),
@@ -142,31 +164,91 @@ function showKeySetup() {
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// CONSENT GATE
+// Shown either right after a fresh Google sign-in (see showGoogleSignIn)
+// or when an existing session's consent has gone stale — e.g. after we
+// bump CURRENT_TOS_VERSION/CURRENT_PRIVACY_VERSION on the backend, /me
+// starts reporting consent_current: false again for every user.
+// ─────────────────────────────────────────────────────────────
+function showConsentRequired({ freshSignIn = false } = {}) {
+  el.keySetup.classList.remove("hidden");
+  el.keyEntry.classList.add("hidden");
+  el.keySteps.classList.add("hidden");
+  el.consentSlide.classList.remove("hidden");
+
+  el.consentHeading.textContent = freshSignIn
+    ? "Terms & Privacy"
+    : "Our terms have been updated";
+  el.consentIntro.textContent = freshSignIn
+    ? "Please review and accept our Terms of Service and Privacy Policy."
+    : "Please review and accept our updated Terms of Service and Privacy Policy to continue.";
+  el.consentContinueBtn.textContent = freshSignIn
+    ? "Continue"
+    : "I Agree & Continue";
+  el.consentCheckbox.checked = false;
+  el.consentContinueBtn.disabled = true;
+  el.consentError.classList.add("hidden");
+
+  el.consentCheckbox.onchange = () => {
+    el.consentContinueBtn.disabled = !el.consentCheckbox.checked;
+  };
+
+  el.consentContinueBtn.onclick = async () => {
+    el.consentContinueBtn.disabled = true;
+    el.consentContinueBtn.textContent = "Saving…";
+    try {
+      const response = await apiFetch(`/consent`, { method: "POST" });
+      if (!response.ok) throw new Error();
+      window.location.reload();
+    } catch {
+      el.consentError.textContent =
+        "Could not save your consent. Please try again.";
+      el.consentError.classList.remove("hidden");
+      el.consentContinueBtn.disabled = false;
+      el.consentContinueBtn.textContent = freshSignIn
+        ? "Continue"
+        : "I Agree & Continue";
+    }
+  };
+}
+
 function showGoogleSignIn() {
   el.keySetup.classList.remove("hidden");
-  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Groq key.</p><button id="googleSignInBtn" class="btn google-btn full-width"><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
-  document.getElementById("googleSignInBtn").onclick = async () => {
+  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Groq key.</p><label class="consent-row"><input type="checkbox" id="signinConsentCheckbox"/><span>I agree to the <a href="https://example.com/terms" target="_blank" rel="noreferrer">Terms of Service</a> and <a href="https://example.com/privacy" target="_blank" rel="noreferrer">Privacy Policy</a></span></label><button id="googleSignInBtn" class="btn google-btn full-width" disabled><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
+
+  const checkbox = document.getElementById("signinConsentCheckbox");
+  const signInBtn = document.getElementById("googleSignInBtn");
+  checkbox.onchange = () => {
+    signInBtn.disabled = !checkbox.checked;
+  };
+
+  signInBtn.onclick = async () => {
+    if (!checkbox.checked) return; // guarded by disabled state anyway
     try {
       const result = await chrome.identity.getAuthToken({ interactive: true });
       const googleToken = typeof result === "string" ? result : result?.token;
-      if (!googleToken) {
-        throw new Error("Google did not return an access token.");
-      }
       const response = await fetch(`${API}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: googleToken }),
       });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail || `Google sign-in failed (HTTP ${response.status}).`);
-      }
+      if (!response.ok) throw new Error();
       const session = await response.json();
       await chrome.storage.session.set({ authToken: session.access_token });
+
+      // The checkbox above IS the user's consent — record it server-side
+      // right away, before letting them into a usable session, per the
+      // same rule the backend enforces (client-claimed consent is never
+      // trusted; only a POST /consent call from an authenticated session
+      // counts).
+      const consentResponse = await apiFetch(`/consent`, { method: "POST" });
+      if (!consentResponse.ok) throw new Error();
+
       window.location.reload();
-    } catch (error) {
-      document.getElementById("keyError").textContent = error.message ||
-        "Google sign-in failed. Try again.";
+    } catch {
+      document.getElementById("keyError").textContent =
+        "Sign-in failed. Try again.";
       document.getElementById("keyError").classList.remove("hidden");
     }
   };
@@ -338,6 +420,68 @@ function attachEvents() {
   // Ask / open chat
   // FIX: was `askBtn.addEventListener` — `askBtn` was undefined (not in `els`)
   el.askBtn.onclick = openChat;
+
+  // Account modal
+  el.accountBtn.onclick = openAccountModal;
+  el.closeAccountBtn.onclick = closeAccountModal;
+  el.accountModal.addEventListener("click", (e) => {
+    if (e.target === el.accountModal) closeAccountModal();
+  });
+  el.manageGroqKeyBtn.onclick = () => {
+    closeAccountModal();
+    showKeySetup();
+  };
+  el.deleteConfirmInput.addEventListener("input", () => {
+    el.confirmDeleteBtn.disabled = el.deleteConfirmInput.value !== "DELETE";
+  });
+  el.confirmDeleteBtn.onclick = deleteAccount;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ACCOUNT MODAL
+// ─────────────────────────────────────────────────────────────
+function openAccountModal() {
+  el.deleteConfirmInput.value = "";
+  el.confirmDeleteBtn.disabled = true;
+  el.confirmDeleteBtn.textContent = "Delete my account";
+  el.deleteError.classList.add("hidden");
+  el.accountModal.classList.remove("hidden");
+}
+
+function closeAccountModal() {
+  el.accountModal.classList.add("hidden");
+}
+
+async function deleteAccount() {
+  if (el.deleteConfirmInput.value !== "DELETE") return;
+  el.confirmDeleteBtn.disabled = true;
+  el.confirmDeleteBtn.textContent = "Deleting…";
+  el.deleteError.classList.add("hidden");
+
+  try {
+    const response = await apiFetch(`/account`, { method: "DELETE" });
+    if (!response.ok) throw new Error();
+
+    // Clear the local session and any cached Google token so the
+    // extension can't silently sign back in with stale credentials.
+    await chrome.storage.session.remove("authToken");
+    if (chrome.identity?.clearAllCachedAuthTokens) {
+      try {
+        await chrome.identity.clearAllCachedAuthTokens();
+      } catch {
+        // Non-fatal — the account is already gone server-side either way.
+      }
+    }
+
+    el.accountModalBody.innerHTML = `<p style="color: var(--accent);">Account deleted. Everything tied to your account has been removed.</p>`;
+    setTimeout(() => window.location.reload(), 1500);
+  } catch {
+    el.deleteError.textContent =
+      "Could not delete your account. Please try again.";
+    el.deleteError.classList.remove("hidden");
+    el.confirmDeleteBtn.disabled = false;
+    el.confirmDeleteBtn.textContent = "Delete my account";
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
