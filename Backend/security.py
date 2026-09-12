@@ -165,6 +165,9 @@ async def verify_google_access_token(access_token: str) -> dict:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google sign-in token is invalid")
     if claims.get("aud") != _required_env("GOOGLE_OAUTH_CLIENT_ID") or not claims.get("sub"):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google sign-in token is not for this extension")
-    if claims.get("verified_email") not in ("true", True):
+    # Current Google OpenID Connect responses use `email_verified`; retain
+    # the former tokeninfo spelling for compatibility with older responses.
+    email_is_verified = claims.get("email_verified", claims.get("verified_email"))
+    if email_is_verified not in ("true", True):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Google email must be verified")
     return claims

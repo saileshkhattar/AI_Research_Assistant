@@ -1,7 +1,12 @@
 import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+# database.py reads DATABASE_URL during import, so the local environment must
+# be loaded before the engine is created.
+load_dotenv()
 
 from database import Base, engine
 
