@@ -524,9 +524,9 @@ button, input, select, textarea { font: inherit; }
 .consent-row span {
   font-size: 0.78rem;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: black;
 }
-.consent-row a { color: var(--accent); text-decoration: underline; }
+.consent-row a { color: var(--brand); text-decoration: underline; }
 
 /* ─────────────────────────────────────────────────────
    Persistent sensitive-data notice (non-dismissible,
@@ -535,12 +535,13 @@ button, input, select, textarea { font: inherit; }
 .sensitive-pill {
   font-size: 0.68rem;
   line-height: 1.4;
-  color: var(--text-muted);
-  background: var(--bg-elevated);
+  color: var(red
+  );
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   padding: 6px 10px;
   margin: 8px 0;
+  border-color: #1e40af;
 }
 
 /* ─────────────────────────────────────────────────────

@@ -228,12 +228,18 @@ function showGoogleSignIn() {
     try {
       const result = await chrome.identity.getAuthToken({ interactive: true });
       const googleToken = typeof result === "string" ? result : result?.token;
+      if (!googleToken) {
+        throw new Error("Google did not return an access token.");
+      }
       const response = await fetch(`${API}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: googleToken }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || `Google sign-in failed (HTTP ${response.status}).`);
+      }
       const session = await response.json();
       await chrome.storage.session.set({ authToken: session.access_token });
 
@@ -243,12 +249,15 @@ function showGoogleSignIn() {
       // trusted; only a POST /consent call from an authenticated session
       // counts).
       const consentResponse = await apiFetch(`/consent`, { method: "POST" });
-      if (!consentResponse.ok) throw new Error();
+      if (!consentResponse.ok) {
+        const payload = await consentResponse.json().catch(() => ({}));
+        throw new Error(payload.detail || `Could not save consent (HTTP ${consentResponse.status}).`);
+      }
 
       window.location.reload();
-    } catch {
+    } catch (error) {
       document.getElementById("keyError").textContent =
-        "Sign-in failed. Try again.";
+        error.message || "Sign-in failed. Try again.";
       document.getElementById("keyError").classList.remove("hidden");
     }
   };
