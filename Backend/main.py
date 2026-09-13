@@ -32,7 +32,7 @@ from routers.consentRouter import router as consent_router
 from routers.accountRouter import router as account_router
 from rateLimit import limiter
 
-app = FastAPI(title="Research Extension API", docs_url=None, redoc_url=None)
+app = FastAPI(title="TabChat API", docs_url=None, redoc_url=None)
 
 # -------------------------------------------------------
 # CORS — restrict to the Chrome extension origin in production.

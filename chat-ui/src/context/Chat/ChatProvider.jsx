@@ -1,5 +1,5 @@
 import { ChatContext } from "./ChatContext";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { chromeStorage } from "../../services/chromeStorage.js";
 import { AgentAPI, ChatAPI, MessageAPI } from "../../services/api.js";
 import { useAgentContext } from "../Agent/useAgentContext.js";
@@ -12,14 +12,11 @@ export function ChatProvider({ children }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // Saved pages for the active agent, and which page (if any) is currently
-  // selected — used to filter the Inbox chat list down to that page's
-  // chats, and as the page_id for the NEXT auto-created chat when starting
-  // a fresh one. Replaces the old "inbox-page-selected" window CustomEvent
-  // with real shared state.
   const [pages, setPages] = useState([]);
   const [pagesLoaded, setPagesLoaded] = useState(false);
   const [pageFilter, setPageFilter] = useState(null);
+
+  const skipNextMessageLoad = useRef(false);
 
   const refreshPages = useCallback(async () => {
     if (!activeAgentId) return;
@@ -37,6 +34,11 @@ export function ChatProvider({ children }) {
   // previous state (including any page filter — it's scoped to one agent).
   useEffect(() => {
     if (!activeAgentId || !userId) return;
+
+    if (skipNextMessageLoad.current) {
+      skipNextMessageLoad.current = false;
+      return;
+    }
 
     setIsLoaded(false);
     setChats([]);
@@ -115,6 +117,7 @@ export function ChatProvider({ children }) {
         page_id: pageFilter ?? null,
       };
       setChats((prev) => [newChat, ...prev]);
+      skipNextMessageLoad.current = true;
       setActiveChatId(chatId);
       await chromeStorage.set({ activeChatId: chatId });
     },

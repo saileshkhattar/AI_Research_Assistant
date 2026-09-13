@@ -25,6 +25,37 @@ export default function Sidebar() {
         overflow: "hidden",
       }}
     >
+      {/* Brand header */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 1.5,
+          py: 1.25,
+          borderBottom: "1px solid #2a2f3a",
+        }}
+      >
+        <Box
+          component="img"
+          src="../../public/logo.svg"
+          alt=""
+          sx={{ width: 22, height: 22, borderRadius: "6px", flexShrink: 0 }}
+        />
+        <Box
+          component="span"
+          sx={{
+            fontFamily: "'Syne', sans-serif",
+            fontSize: "0.95rem",
+            fontWeight: 700,
+            color: "#f5f7ff",
+            letterSpacing: "0.02em",
+          }}
+        >
+          TabChat
+        </Box>
+      </Box>
+
       {/* Agent selector */}
       <Box sx={{ p: 1.5, borderBottom: "1px solid #2a2f3a" }}>
         <AgentDropdown />

@@ -15,7 +15,7 @@ export default function ReConsentScreen() {
           <h1>Our terms have been updated</h1>
           <p>
             Please review and accept our updated Terms of Service and Privacy
-            Policy to keep using your research assistant.
+            Policy to keep using TabChat.
           </p>
           <ConsentGate
             buttonLabel="I Agree & Continue"

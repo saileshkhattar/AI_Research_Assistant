@@ -5,6 +5,8 @@ import MessageInput from "./MessageInput";
 import { useMessages } from "../../hooks/useMessages";
 import { useChats } from "../../hooks/useChats";
 import { useAgents } from "../../hooks/useAgents";
+import { useEffect, useRef } from "react";
+import { chromeStorage } from "../../services/chromeStorage";
 
 const AGENT_HINTS = {
   general: "General — quick answers to anything. No pages needed.",
@@ -14,9 +16,9 @@ const AGENT_HINTS = {
 };
 
 export default function ChatWindow() {
-  const { activeChatId, chats, pages, pageFilter } = useChats();
+  const { activeChatId, chats, pages, pageFilter, isLoaded } = useChats();
   const { sendMessage, isStreaming } = useMessages();
-  const { activeAgentId, agents } = useAgents();
+  const { activeAgentId, agents, setActiveAgent } = useAgents();
 
   const activeAgent = agents.find((a) => a.id === activeAgentId);
   const activeChat = chats.find((c) => c.id === activeChatId);
@@ -24,9 +26,6 @@ export default function ChatWindow() {
   const isInbox = activeAgent?.type === "system_inbox";
   const isGeneral = activeAgent?.type === "general";
 
-  // The page this chat (open or about-to-start) is scoped to — an open
-  // chat's own page_id takes priority, falling back to the sidebar's
-  // current page filter for a chat that hasn't been created yet.
   const scopedPageId = isInbox
     ? (activeChat?.page_id ?? pageFilter ?? null)
     : null;
@@ -41,6 +40,29 @@ export default function ChatWindow() {
     const pageId = isInbox ? scopedPageId : (activeChat?.page_id ?? null);
     await sendMessage(activeChatId, text, pageId);
   };
+
+  const pendingQueryHandled = useRef(false);
+
+  useEffect(() => {
+    if (!isLoaded || pendingQueryHandled.current) return;
+
+    (async () => {
+      const { pendingQuery } = await chromeStorage.getSession("pendingQuery");
+      if (!pendingQuery) {
+        pendingQueryHandled.current = true;
+        return;
+      }
+
+      if (pendingQuery.agentId && pendingQuery.agentId !== activeAgentId) {
+        await setActiveAgent(pendingQuery.agentId);
+        return;
+      }
+
+      pendingQueryHandled.current = true;
+      await chromeStorage.removeSession("pendingQuery");
+      if (pendingQuery.question) await handleSend(pendingQuery.question);
+    })();
+  }, [isLoaded, activeAgentId]);
 
   if (!activeAgentId) {
     return (

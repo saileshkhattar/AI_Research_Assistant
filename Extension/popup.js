@@ -140,7 +140,7 @@ function showKeySetup() {
       el.keyError.classList.remove("hidden");
       return;
     }
-    // Unified onto the shared apiFetch() helper (was hand-rolled fetch +
+    // Unified onto the shared apiFetch() helper (was hand-rolled fetch
     // manual token attachment) — a token already exists at this point
     // in the flow, so there's no reason not to use it here too.
     const response = await apiFetch(`/me/keys/groq`, {
@@ -256,7 +256,7 @@ function showGoogleSignIn() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// LOAD STATE FROM STORAGE + BACKEND
+// LOAD STATE FROM STORAGE  BACKEND
 // ─────────────────────────────────────────────────────────────
 async function loadState() {
   if (!API) {
@@ -701,7 +701,7 @@ function handleSaveResult({ ok, error }) {
 
 function setStatus(text, type) {
   el.statusMsg.textContent = text;
-  el.statusMsg.className = "status-message" + (type ? ` ${type}` : "");
+  el.statusMsg.className = "status-message"(type ? ` ${type}` : "");
 }
 
 function showBanner(msg) {
@@ -721,21 +721,24 @@ function clearBanner() {
 // OPEN CHAT UI
 // ─────────────────────────────────────────────────────────────
 function openChat() {
-  // FIX: the typed "Quick Ask" question used to be silently discarded —
-  // now passed through as URL params so chat-ui can pick it up and
-  // pre-fill / auto-send the question on load. chat-ui's own code needs
-  // a matching change to actually read these params — flagged separately.
   const question = el.questionBox.value.trim();
   const agentId = el.select.value;
-  const params = new URLSearchParams();
-  if (agentId) params.set("agent_id", agentId);
-  if (question) params.set("q", question);
 
-  const base = chrome.runtime.getURL("chat-ui/index.html");
-  const chatUrl = params.toString() ? `${base}?${params.toString()}` : base;
-  chrome.tabs.create({ url: chatUrl });
+  const pendingQuery = {};
+  if (agentId) pendingQuery.agentId = agentId;
+  if (question) pendingQuery.question = question;
 
-  el.questionBox.value = "";
+  const openTab = () => {
+    const chatUrl = chrome.runtime.getURL("chat-ui/index.html");
+    chrome.tabs.create({ url: chatUrl });
+    el.questionBox.value = "";
+  };
+
+  if (Object.keys(pendingQuery).length) {
+    chrome.storage.session.set({ pendingQuery }, openTab);
+  } else {
+    openTab();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -743,7 +746,7 @@ function openChat() {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Strip scheme + www from a URL for compact display.
+ * Strip scheme  www from a URL for compact display.
  * Matches the backend display_url() logic.
  */
 function displayUrl(url) {

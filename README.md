@@ -1,4 +1,4 @@
-# Research Assistant
+# TabChat
 
 A Chrome extension and FastAPI backend for research chats grounded in pages the user explicitly saves.
 
