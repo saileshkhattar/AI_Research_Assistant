@@ -37,6 +37,7 @@ const el = {
   closeUrls: document.getElementById("closeUrlsBtn"),
 
   saveBtn: document.getElementById("savePageBtn"),
+  savePageHint: document.getElementById("savePageHint"),
   statusMsg: document.getElementById("statusMessage"),
 
   askBtn: document.getElementById("askBtn"), // FIX: was undeclared var
@@ -228,18 +229,12 @@ function showGoogleSignIn() {
     try {
       const result = await chrome.identity.getAuthToken({ interactive: true });
       const googleToken = typeof result === "string" ? result : result?.token;
-      if (!googleToken) {
-        throw new Error("Google did not return an access token.");
-      }
       const response = await fetch(`${API}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ access_token: googleToken }),
       });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail || `Google sign-in failed (HTTP ${response.status}).`);
-      }
+      if (!response.ok) throw new Error();
       const session = await response.json();
       await chrome.storage.session.set({ authToken: session.access_token });
 
@@ -249,15 +244,12 @@ function showGoogleSignIn() {
       // trusted; only a POST /consent call from an authenticated session
       // counts).
       const consentResponse = await apiFetch(`/consent`, { method: "POST" });
-      if (!consentResponse.ok) {
-        const payload = await consentResponse.json().catch(() => ({}));
-        throw new Error(payload.detail || `Could not save consent (HTTP ${consentResponse.status}).`);
-      }
+      if (!consentResponse.ok) throw new Error();
 
       window.location.reload();
-    } catch (error) {
+    } catch {
       document.getElementById("keyError").textContent =
-        error.message || "Sign-in failed. Try again.";
+        "Sign-in failed. Try again.";
       document.getElementById("keyError").classList.remove("hidden");
     }
   };
@@ -361,6 +353,21 @@ function updateHelper() {
     general: "General — best for open-ended research.",
   };
   el.helper.textContent = descriptions[agent.type] ?? "Custom knowledge base.";
+
+  // General never uses saved pages — disable Save rather than let the
+  // user save into it and wonder why nothing happens with it later.
+  const isGeneral = agent.type === "general";
+  el.saveBtn.disabled = isGeneral;
+  el.saveBtn.title = isGeneral
+    ? "Switch to Inbox or a custom agent to save this page."
+    : "";
+  if (isGeneral) {
+    el.savePageHint.textContent =
+      "General doesn't use saved pages — switch agents above to save this page.";
+    el.savePageHint.classList.remove("hidden");
+  } else {
+    el.savePageHint.classList.add("hidden");
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -646,6 +653,12 @@ async function deletePage(pageId, itemEl) {
 // FIX: no longer reports instant success — waits for SAVE_RESULT message
 // ─────────────────────────────────────────────────────────────
 async function savePage() {
+  const agent = agents.find((a) => a.id === el.select.value);
+  if (agent?.type === "general") {
+    setStatus("Switch agents — General doesn't use saved pages.", "error");
+    return;
+  }
+
   if (!currentTab?.id) {
     setStatus("No active tab found.", "error");
     return;

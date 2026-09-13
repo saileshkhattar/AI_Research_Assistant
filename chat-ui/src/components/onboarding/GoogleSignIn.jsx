@@ -35,6 +35,7 @@ export default function GoogleSignIn() {
             buttonLabel="Continue with Google"
             busyLabel="Signing in…"
             onAccept={handleAccept}
+            variant="google"
           />
         </div>
       </section>

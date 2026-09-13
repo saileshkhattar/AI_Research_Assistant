@@ -5,9 +5,12 @@ import {
   ListItemButton,
   ListItemText,
   Skeleton,
+  Button,
 } from "@mui/material";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import AddIcon from "@mui/icons-material/Add";
 import { useChats } from "../../hooks/useChats";
+import { useAgents } from "../../hooks/useAgents";
 
 function formatChatTime(dateStr) {
   if (!dateStr) return "";
@@ -26,39 +29,108 @@ function formatChatTime(dateStr) {
 }
 
 export default function ChatList() {
-  const { chats, activeChatId, setActiveChat, isLoaded, isStreaming } = useChats();
+  const {
+    chats,
+    activeChatId,
+    setActiveChat,
+    isLoaded,
+    isStreaming,
+    pageFilter,
+    startNewChat,
+  } = useChats();
+  const { activeAgentId, agents } = useAgents();
+
+  const activeAgent = agents.find((a) => a.id === activeAgentId);
+  const isInbox = activeAgent?.type === "system_inbox";
+
+  // Inbox: the Pages list above is a FILTER, not a 1:1 chat picker — a
+  // page can have several chats. Nothing to show until a page is chosen,
+  // and once one is, only that page's chats are listed.
+  if (isInbox && !pageFilter) {
+    return (
+      <Box sx={{ flex: 1, p: 1.5 }}>
+        <SectionLabel>Chats</SectionLabel>
+        <Box
+          sx={{
+            px: 1,
+            py: 1,
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "0.68rem",
+            color: "#3a3a50",
+            lineHeight: 1.5,
+          }}
+        >
+          Select a page above to view its chats.
+        </Box>
+      </Box>
+    );
+  }
+
+  const visibleChats = isInbox
+    ? chats.filter((c) => c.page_id === pageFilter)
+    : chats;
 
   return (
     <Box sx={{ flex: 1, overflowY: "auto", p: 1.5 }}>
-      <Typography
-        variant="overline"
-        sx={{
-          px: 1, mb: 0.5, display: "block",
-          fontSize: "0.65rem", letterSpacing: "0.12em",
-          color: "#7a8090", fontFamily: "'Syne', sans-serif", fontWeight: 600,
-        }}
-      >
-        Chats
-      </Typography>
+      <SectionLabel>Chats</SectionLabel>
+
+      {isInbox && (
+        <Button
+          fullWidth
+          size="small"
+          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+          onClick={() => !isStreaming && startNewChat()}
+          disabled={isStreaming}
+          sx={{
+            justifyContent: "flex-start",
+            mb: 0.75,
+            py: 0.5,
+            px: 1,
+            fontFamily: "'Syne', sans-serif",
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            color: "#a78bfa",
+            textTransform: "none",
+            "&:hover": { backgroundColor: "rgba(167,139,250,0.08)" },
+          }}
+        >
+          New chat about this page
+        </Button>
+      )}
 
       {/* Loading skeletons */}
       {!isLoaded && (
         <Box sx={{ px: 1 }}>
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ mb: 0.5, bgcolor: "#22252e" }} />
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={36}
+              sx={{ mb: 0.5, bgcolor: "#22252e" }}
+            />
           ))}
         </Box>
       )}
 
       {/* Empty state */}
-      {isLoaded && chats.length === 0 && (
-        <Box sx={{ px: 1, py: 1, fontFamily: "'DM Mono', monospace", fontSize: "0.68rem", color: "#3a3a50" }}>
-          No chats yet — send a message to start
+      {isLoaded && visibleChats.length === 0 && (
+        <Box
+          sx={{
+            px: 1,
+            py: 1,
+            fontFamily: "'DM Mono', monospace",
+            fontSize: "0.68rem",
+            color: "#3a3a50",
+          }}
+        >
+          {isInbox
+            ? "No chats yet for this page — send a message to start"
+            : "No chats yet — send a message to start"}
         </Box>
       )}
 
       <List dense disablePadding>
-        {chats.map((chat) => {
+        {visibleChats.map((chat) => {
           const isActive = chat.id === activeChatId;
           return (
             <ListItemButton
@@ -68,9 +140,15 @@ export default function ChatList() {
               onClick={() => !isStreaming && setActiveChat(chat.id)}
               sx={{
                 borderRadius: "6px",
-                mb: 0.25, py: 0.75, px: 1, gap: 1,
+                mb: 0.25,
+                py: 0.75,
+                px: 1,
+                gap: 1,
                 transition: "all 0.15s",
-                "&:hover": { backgroundColor: "#22252e", "& .chat-title": { color: "#f5f7ff" } },
+                "&:hover": {
+                  backgroundColor: "#22252e",
+                  "& .chat-title": { color: "#f5f7ff" },
+                },
                 "&.Mui-selected": {
                   backgroundColor: "rgba(0,212,255,0.08)",
                   borderLeft: "2px solid #00d4ff",
@@ -118,5 +196,25 @@ export default function ChatList() {
         })}
       </List>
     </Box>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <Typography
+      variant="overline"
+      sx={{
+        px: 1,
+        mb: 0.5,
+        display: "block",
+        fontSize: "0.65rem",
+        letterSpacing: "0.12em",
+        color: "#7a8090",
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 600,
+      }}
+    >
+      {children}
+    </Typography>
   );
 }

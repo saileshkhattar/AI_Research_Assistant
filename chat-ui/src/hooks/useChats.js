@@ -13,6 +13,12 @@ export function useChats() {
     setMessages,
     isStreaming,
     isLoaded,
+    pages,
+    setPages,
+    pagesLoaded,
+    refreshPages,
+    pageFilter,
+    setPageFilter,
   } = useChatContext();
 
   return {
@@ -27,5 +33,11 @@ export function useChats() {
     setMessages,
     isStreaming,
     isLoaded,
+    pages,
+    setPages,
+    pagesLoaded,
+    refreshPages,
+    pageFilter,
+    setPageFilter,
   };
 }

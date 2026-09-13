@@ -1,3 +1,6 @@
+import logging
+import traceback
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -13,6 +16,7 @@ from consentGate import require_consent
 from langchain_core.documents import Document
 
 router = APIRouter()
+logger = logging.getLogger("ingest")
 
 
 @router.post("/ingest_page", response_model=dict)
@@ -58,12 +62,29 @@ async def ingest_page(
             },
         )
         docs = text_splitter.split_documents([document])
-        get_vectorstore().add_documents(docs)
+
+        print(f"[ingest_page] DEBUG: about to embed {len(docs)} chunks for page_id={new_page.id}")
+        vectorstore = get_vectorstore()
+        print(f"[ingest_page] DEBUG: vectorstore constructed OK: {vectorstore}")
+
+        vectorstore.add_documents(docs)
+        print(f"[ingest_page] DEBUG: add_documents() succeeded")
         # NOTE: vectorstore.persist() removed — chromadb >= 0.4 auto-persists
 
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Could not store page embeddings")
+        # Full traceback to the server console/logs — this is what actually
+        # tells us what broke (KMS, HF API, Chroma, etc.), instead of the
+        # generic message the client sees.
+        logger.error("ingest_page embedding failed: %s", e, exc_info=True)
+        print("[ingest_page] DEBUG: FULL TRACEBACK BELOW")
+        print(traceback.format_exc())
+
+        # TEMPORARY — include the real error in the response so you can see
+        # it immediately without digging through server logs. Remove this
+        # detail= override once the root cause is fixed; it can leak
+        # internal details (stack traces, key/config hints) to the client.
+        raise HTTPException(status_code=500, detail=f"Could not store page embeddings: {e}")
 
     db.commit()
 
