@@ -41,7 +41,8 @@ logs/
 *.db
 *.sqlite
 
-# Chroma DB (vector database storage)
+# Chroma DB — now hosted on Chroma Cloud (see Backend/ragSetup/ragArchitecture.py).
+# Kept here in case anything ever falls back to a local persist dir.
 chroma_db/
 
 # ----------------------------

@@ -30,6 +30,7 @@ from routers.chatRouter import router as chat_router
 from routers.queryStreamRouter import router as query_router
 from routers.consentRouter import router as consent_router
 from routers.accountRouter import router as account_router
+from routers.legalRouter import router as legal_router
 from rateLimit import limiter
 
 app = FastAPI(title="TabChat API", docs_url=None, redoc_url=None)
@@ -88,6 +89,7 @@ app.include_router(ingestRouter.router)
 app.include_router(query_router)
 app.include_router(consent_router)
 app.include_router(account_router)
+app.include_router(legal_router)
 
 
 @app.get("/health")

@@ -111,8 +111,8 @@ def delete_page(page_id: str, db: Session = Depends(get_db), user: User = Depend
 
     try:
         # Deleting does not need an embedding function.
-        from ragSetup.ragArchitecture import vectorstore
-        collection = vectorstore._collection
+        from ragSetup.ragArchitecture import get_deletion_vectorstore
+        collection = get_deletion_vectorstore()._collection
         results = collection.get(where={"page_id": {"$eq": page_id}})
         if results and results.get("ids"):
             collection.delete(ids=results["ids"])

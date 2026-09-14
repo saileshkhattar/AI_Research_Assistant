@@ -2,10 +2,10 @@
 Shared test setup.
 
 These tests exercise consent-gating and account-deletion logic, not actual
-connectivity to AWS KMS, Redis, or Google — so we fake those three
-integration points with small deterministic stand-ins, isolate the DB to a
-throwaway sqlite file, and point Chroma's persist dir at a temp folder.
-Everything else (routing, DB cascades, JWT auth) runs for real.
+connectivity to AWS KMS, Redis, Google, or Chroma Cloud — so we fake those
+four integration points with small deterministic stand-ins and isolate the
+DB to a throwaway sqlite file. Everything else (routing, DB cascades, JWT
+auth) runs for real.
 """
 import os
 import tempfile
@@ -17,20 +17,26 @@ os.environ.setdefault("AWS_REGION", "us-east-1")
 os.environ.setdefault("KMS_KEY_ID", "arn:aws:kms:us-east-1:123456789012:key/test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("HUGGINGFACE_API_KEY", "test-hf-token")
+os.environ.setdefault("CHROMA_API_KEY", "test-chroma-key")
 
 _tmp_db_fd, _tmp_db_path = tempfile.mkstemp(suffix=".db")
 os.close(_tmp_db_fd)
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp_db_path}"
 
-# Chroma writes to a relative "chroma_db" dir by default — isolate it.
-os.chdir(tempfile.mkdtemp())
-
+import chromadb
 import pytest
 from fastapi.testclient import TestClient
 
 import security
+import ragSetup.ragArchitecture as rag_architecture_module
 import routers.userRouter as user_router_module
 import routers.accountRouter as account_router_module
+
+# In-memory Chroma — real chromadb query/filter semantics, no network or
+# real Chroma Cloud credentials needed. Set on the module *before* anything
+# calls get_chroma_client(), so the lazy singleton picks this up instead of
+# constructing a real CloudClient.
+rag_architecture_module._chroma_client = chromadb.EphemeralClient()
 
 
 class _FakeRedis:

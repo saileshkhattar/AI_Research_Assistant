@@ -1,12 +1,12 @@
 from langchain_community.vectorstores import Chroma
-from ragSetup.ragArchitecture import get_embeddings, PERSIST_DIR
+from ragSetup.ragArchitecture import get_embeddings, get_chroma_client, COLLECTION_NAME
 
 
 def get_vectorstore() -> Chroma:
     return Chroma(
-        collection_name="web_pages",
+        client=get_chroma_client(),
+        collection_name=COLLECTION_NAME,
         embedding_function=get_embeddings(),
-        persist_directory=PERSIST_DIR,
     )
 
 

@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+import chromadb
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
@@ -40,14 +41,52 @@ def get_embeddings() -> HuggingFaceEndpointEmbeddings:
     )
 
 
-PERSIST_DIR = "chroma_db"
+def _chroma_api_key() -> str:
+    value = os.getenv("CHROMA_API_KEY")
+    if not value:
+        raise RuntimeError("CHROMA_API_KEY must be configured on the server")
+    return value
 
-# Global vectorstore for ingestion (shared write handle)
-vectorstore = Chroma(
-    collection_name="web_pages",
-    embedding_function=None,
-    persist_directory=PERSIST_DIR,
-)
+
+COLLECTION_NAME = "web_pages"
+
+_chroma_client = None
+
+
+def get_chroma_client() -> chromadb.CloudClient:
+    """Lazily create a single Chroma Cloud client for the process.
+
+    Replaces the old `chroma_db/` local-disk directory, which was wiped
+    every time the free-tier host redeployed, restarted, or spun down from
+    inactivity — Chroma Cloud persists independently of the app instance.
+
+    Tenant/database are auto-resolved from the API key when it's scoped to
+    a single database (Chroma's default for a fresh project); set
+    CHROMA_TENANT / CHROMA_DATABASE explicitly only if that resolution
+    ever becomes ambiguous. Lazy + a single shared instance so tests can
+    substitute an in-memory client (see tests/conftest.py) without needing
+    real Chroma Cloud credentials or network access.
+    """
+    global _chroma_client
+    if _chroma_client is None:
+        _chroma_client = chromadb.CloudClient(api_key=_chroma_api_key())
+    return _chroma_client
+
+
+def get_deletion_vectorstore() -> Chroma:
+    """Handle for direct collection access (bulk delete by metadata filter).
+
+    No embedding function needed for deletes. Same client + collection
+    name as get_vectorstore() in retrieverFactory.py, so both always point
+    at the same Chroma Cloud data — built fresh each call (not cached at
+    module load) so it always reflects the current get_chroma_client().
+    """
+    return Chroma(
+        client=get_chroma_client(),
+        collection_name=COLLECTION_NAME,
+        embedding_function=None,
+    )
+
 
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,

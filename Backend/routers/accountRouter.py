@@ -9,7 +9,7 @@ from models.consent import Consent
 from models.deletionLog import DeletionLog
 from models.providerKeys import ProviderKey
 from models.users import User
-from ragSetup.ragArchitecture import vectorstore
+from ragSetup.ragArchitecture import get_deletion_vectorstore
 from security import forget_cached_secret, get_current_user
 
 router = APIRouter()
@@ -24,7 +24,7 @@ def _purge_vectors(user_id: str) -> None:
     the account half-deleted because the vector store hiccuped.
     """
     try:
-        collection = vectorstore._collection
+        collection = get_deletion_vectorstore()._collection
         existing = collection.get(where={"user_id": {"$eq": user_id}})
         ids = existing.get("ids") if existing else None
         if ids:

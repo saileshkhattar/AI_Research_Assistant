@@ -65,6 +65,35 @@ def test_delete_account_removes_every_relevant_row(client, signed_in_user):
     assert fake_redis.get(cache_key) is None
 
 
+def test_delete_account_purges_vectors(client, signed_in_user):
+    """Exercises the exact code path production uses to talk to Chroma
+    Cloud — get_chroma_client() + COLLECTION_NAME — just against the
+    in-memory client conftest substitutes in. Proves the ingest/delete
+    wiring survived the local-disk -> Chroma Cloud swap, without needing
+    real Chroma Cloud credentials or a real embedding call."""
+    import ragSetup.ragArchitecture as rag_architecture
+
+    headers, user_id = signed_in_user("vector-owner")
+    _consent(client, headers)
+
+    collection = rag_architecture.get_chroma_client().get_or_create_collection(
+        rag_architecture.COLLECTION_NAME
+    )
+    chunk_id = f"test-chunk-{user_id}"
+    collection.add(
+        ids=[chunk_id],
+        documents=["irrelevant test content"],
+        metadatas=[{"user_id": user_id, "agent_id": "test-agent", "page_id": "test-page"}],
+        embeddings=[[0.1] * 8],
+    )
+    assert collection.get(where={"user_id": {"$eq": user_id}})["ids"] == [chunk_id]
+
+    delete_resp = client.delete("/account", headers=headers)
+    assert delete_resp.status_code == 200
+
+    assert collection.get(where={"user_id": {"$eq": user_id}})["ids"] == []
+
+
 def test_delete_account_is_idempotent(client, signed_in_user):
     headers, _ = signed_in_user("delete-twice")
     _consent(client, headers)

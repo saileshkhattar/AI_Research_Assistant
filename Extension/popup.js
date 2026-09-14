@@ -12,6 +12,12 @@ const API = (() => {
   }
 })();
 
+// Served by Backend/routers/legalRouter.py. Kept alongside API rather than
+// hardcoded elsewhere so both consent surfaces (fresh sign-in + reconsent)
+// always point at the same backend, dev or prod.
+const TOS_URL = API ? `${API}/legal/terms` : "#";
+const PRIVACY_URL = API ? `${API}/legal/privacy` : "#";
+
 // ─────────────────────────────────────────────────────────────
 // DOM REFS
 // ─────────────────────────────────────────────────────────────
@@ -57,6 +63,8 @@ const el = {
   consentCheckbox: document.getElementById("consentCheckbox"),
   consentError: document.getElementById("consentError"),
   consentContinueBtn: document.getElementById("consentContinueBtn"),
+  consentTosLink: document.getElementById("consentTosLink"),
+  consentPrivacyLink: document.getElementById("consentPrivacyLink"),
 
   accountBtn: document.getElementById("accountBtn"),
   accountModal: document.getElementById("accountModal"),
@@ -187,6 +195,8 @@ function showConsentRequired({ freshSignIn = false } = {}) {
   el.consentContinueBtn.textContent = freshSignIn
     ? "Continue"
     : "I Agree & Continue";
+  el.consentTosLink.href = TOS_URL;
+  el.consentPrivacyLink.href = PRIVACY_URL;
   el.consentCheckbox.checked = false;
   el.consentContinueBtn.disabled = true;
   el.consentError.classList.add("hidden");
@@ -216,7 +226,7 @@ function showConsentRequired({ freshSignIn = false } = {}) {
 
 function showGoogleSignIn() {
   el.keySetup.classList.remove("hidden");
-  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Groq key.</p><label class="consent-row"><input type="checkbox" id="signinConsentCheckbox"/><span>I agree to the <a href="https://example.com/terms" target="_blank" rel="noreferrer">Terms of Service</a> and <a href="https://example.com/privacy" target="_blank" rel="noreferrer">Privacy Policy</a></span></label><button id="googleSignInBtn" class="btn google-btn full-width" disabled><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
+  el.keySetup.innerHTML = `<div class="key-slide"><div class="section-label">Research AI workspace</div><h1>Sign in to continue</h1><p>Use your Google account to securely save research and manage your Groq key.</p><label class="consent-row"><input type="checkbox" id="signinConsentCheckbox"/><span>I agree to the <a href="${TOS_URL}" target="_blank" rel="noreferrer">Terms of Service</a> and <a href="${PRIVACY_URL}" target="_blank" rel="noreferrer">Privacy Policy</a></span></label><button id="googleSignInBtn" class="btn google-btn full-width" disabled><svg class="google-logo" viewBox="0 0 18 18" aria-hidden="true"><path fill="#EA4335" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.483h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.909c1.703-1.567 2.683-3.875 2.683-6.616Z"/><path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.957-2.179l-2.909-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.71H.957v2.332A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.712A5.41 5.41 0 0 1 3.682 9c0-.594.102-1.171.282-1.712V4.956H.957A9 9 0 0 0 0 9c0 1.453.348 2.829.957 4.044l3.007-2.332Z"/><path fill="#34A853" d="M9 3.58c1.322 0 2.508.455 3.443 1.348l2.583-2.583C13.464.891 11.426 0 9 0A9 9 0 0 0 .957 4.956l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58Z"/></svg>Continue with Google</button><div id="keyError" class="error-text hidden"></div></div>`;
 
   const checkbox = document.getElementById("signinConsentCheckbox");
   const signInBtn = document.getElementById("googleSignInBtn");

@@ -1,8 +1,20 @@
 import { useState } from "react";
+import { getApiBaseUrl } from "../../services/config.js";
 
-// Placeholder — swap for the real published URLs once ToS/Privacy content exists.
-const TOS_URL = "https://example.com/terms";
-const PRIVACY_URL = "https://example.com/privacy";
+// Served by Backend/routers/legalRouter.py. Same source of truth as the
+// Extension popup's consent screens — both point at the backend, not a
+// separately hosted doc, so there's one place to update when these change.
+// Computed lazily (not at module load) so a missing/bad config doesn't
+// crash the whole module import — matches api.js's existing convention.
+function getLegalUrls() {
+  try {
+    const base = getApiBaseUrl();
+    return { tos: `${base}/legal/terms`, privacy: `${base}/legal/privacy` };
+  } catch (error) {
+    console.error(error);
+    return { tos: "#", privacy: "#" };
+  }
+}
 
 // Same multicolor "G" mark used in Extension/popup.js's injected sign-in
 // button, so both surfaces render an identical Google button.
@@ -38,6 +50,7 @@ export default function ConsentGate({
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const { tos: TOS_URL, privacy: PRIVACY_URL } = getLegalUrls();
 
   const handleClick = async () => {
     if (!agreed || busy) return;
