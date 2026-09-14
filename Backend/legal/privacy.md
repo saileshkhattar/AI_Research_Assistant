@@ -1,6 +1,6 @@
 # TabChat Privacy Policy
 
-**Version:** 1.0
+**Version:** 1.1
 **Effective date:** [FILL IN AT DEPLOYMENT]
 
 TabChat is a Chrome extension and companion web app that lets you save pages you're browsing and ask questions about them, grounded in an AI model. This policy explains what data TabChat collects, why, and what you can do about it.
@@ -46,13 +46,14 @@ Running TabChat requires sending parts of your data to a small number of service
 | Groq | The text of your questions and retrieved page content, using **your own** API key | Generating chat responses |
 | Hugging Face | The text of pages you save (and your questions, for matching) | Computing embeddings used to find relevant content |
 | AWS (KMS) | Your encrypted API key material | Encryption/decryption of your stored key |
+| Chroma Cloud (AWS us-east-1) | Text chunks from pages you save and associated retrieval metadata | Persistent vector search for your saved research |
 | Our hosting provider (Render/Railway) and their Redis add-on | All of the above, since this is where our servers and databases run | Hosting the application |
 
 We do not otherwise share, rent, or sell your data to third parties. Each of these providers has its own privacy practices governing how they handle data sent to them, which are outside our control — we encourage you to review Groq's and Hugging Face's own policies if you want detail on their handling of API requests.
 
 ## 4. Where your data is processed
 
-Our infrastructure runs on commercial cloud hosting (Render/Railway) and third-party APIs (Google, Groq, Hugging Face, AWS), which may process data in the United States or other countries depending on their own infrastructure. By using TabChat, you understand your data may be processed outside your own country.
+Our infrastructure runs on commercial cloud hosting (Render/Railway) and third-party APIs (Google, Groq, Hugging Face, AWS, and Chroma Cloud). Chroma Cloud stores the vectorized index of saved-page text in AWS's **us-east-1 (United States)** region. These providers may otherwise process data in the United States or other countries depending on their own infrastructure. By using TabChat, you understand your data may be processed outside your own country.
 
 ## 5. How long we keep your data
 

@@ -5,7 +5,7 @@ import MessageInput from "./MessageInput";
 import { useMessages } from "../../hooks/useMessages";
 import { useChats } from "../../hooks/useChats";
 import { useAgents } from "../../hooks/useAgents";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { chromeStorage } from "../../services/chromeStorage";
 
 const AGENT_HINTS = {
@@ -36,10 +36,10 @@ export default function ChatWindow() {
   // Inbox guard: no page selected at all yet (nothing to chat about)
   const inboxNeedsPage = isInbox && !scopedPageId;
 
-  const handleSend = async (text) => {
+  const handleSend = useCallback(async (text) => {
     const pageId = isInbox ? scopedPageId : (activeChat?.page_id ?? null);
     await sendMessage(activeChatId, text, pageId);
-  };
+  }, [activeChat?.page_id, activeChatId, isInbox, scopedPageId, sendMessage]);
 
   const pendingQueryHandled = useRef(false);
 
@@ -62,7 +62,7 @@ export default function ChatWindow() {
       await chromeStorage.removeSession("pendingQuery");
       if (pendingQuery.question) await handleSend(pendingQuery.question);
     })();
-  }, [isLoaded, activeAgentId]);
+  }, [isLoaded, activeAgentId, handleSend, setActiveAgent]);
 
   if (!activeAgentId) {
     return (

@@ -17,6 +17,7 @@ export function ChatProvider({ children }) {
   const [pageFilter, setPageFilter] = useState(null);
 
   const skipNextMessageLoad = useRef(false);
+  const skipMessageLoadForChat = useRef(null);
 
   const refreshPages = useCallback(async () => {
     if (!activeAgentId) return;
@@ -82,6 +83,14 @@ export function ChatProvider({ children }) {
       return;
     }
 
+    // The streaming endpoint has already placed optimistic user/assistant
+    // messages in state. Fetching here before its final DB write races with
+    // the stream and replaces that state with an incomplete history.
+    if (skipMessageLoadForChat.current === activeChatId) {
+      skipMessageLoadForChat.current = null;
+      return;
+    }
+
     const loadMessages = async () => {
       try {
         const backendMessages = await MessageAPI.getMessages(activeChatId);
@@ -108,16 +117,20 @@ export function ChatProvider({ children }) {
   // Called by useMessages when the backend auto-creates a new chat.
   // Receives the raw chat_id string from the X-Chat-Id response header.
   const onChatCreated = useCallback(
-    async (chatId) => {
+    async (chatId, question = "") => {
       const newChat = {
         id: chatId,
-        title: "New Chat",
+        // The server generates the definitive title. This useful optimistic
+        // fallback avoids a permanently misleading "New Chat" if a title
+        // request is slow or temporarily fails.
+        title: question.trim().slice(0, 60) || "New Chat",
         agent_id: activeAgentId,
         user_id: userId,
         page_id: pageFilter ?? null,
       };
       setChats((prev) => [newChat, ...prev]);
       skipNextMessageLoad.current = true;
+      skipMessageLoadForChat.current = chatId;
       setActiveChatId(chatId);
       await chromeStorage.set({ activeChatId: chatId });
     },

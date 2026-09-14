@@ -59,7 +59,9 @@ export function useMessages() {
 
       const returnedChatId = response.headers.get("X-Chat-Id");
       if (returnedChatId && !chatId) {
-        await onChatCreated(returnedChatId);
+        // Avoid ChatProvider's persisted-message loader overwriting this
+        // response while the stream is still arriving.
+        await onChatCreated(returnedChatId, text);
       }
 
       const reader  = response.body.getReader();

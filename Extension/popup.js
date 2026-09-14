@@ -76,6 +76,27 @@ const el = {
   confirmDeleteBtn: document.getElementById("confirmDeleteBtn"),
 };
 
+const onboardingTemplate = el.keySetup.innerHTML;
+
+function restoreOnboardingTemplate() {
+  el.keySetup.innerHTML = onboardingTemplate;
+  el.consentSlide = document.getElementById("consentSlide");
+  el.consentHeading = document.getElementById("consentHeading");
+  el.consentIntro = document.getElementById("consentIntro");
+  el.consentCheckbox = document.getElementById("consentCheckbox");
+  el.consentError = document.getElementById("consentError");
+  el.consentContinueBtn = document.getElementById("consentContinueBtn");
+  el.consentTosLink = document.getElementById("consentTosLink");
+  el.consentPrivacyLink = document.getElementById("consentPrivacyLink");
+  el.keyEntry = document.getElementById("keyEntry");
+  el.keySteps = document.getElementById("keySteps");
+  el.groqKeyInput = document.getElementById("groqKeyInput");
+  el.saveGroqKey = document.getElementById("saveGroqKeyBtn");
+  el.showKeySteps = document.getElementById("showKeyStepsBtn");
+  el.backToKey = document.getElementById("backToKeyBtn");
+  el.keyError = document.getElementById("keyError");
+}
+
 // ─────────────────────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────────────────────
@@ -97,16 +118,16 @@ async function apiFetch(path, options = {}) {
 // INIT
 // ─────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
-  const { authToken } = await chrome.storage.session.get("authToken");
-  if (!authToken) {
-    showGoogleSignIn();
-    return;
-  }
+  // Keep the authenticated extension session while it remains valid. Consent
+  // is requested again only if the backend reports that its legal version is
+  // stale, rather than on every ordinary popup opening.
+  await initializeAuthenticatedPopup();
+});
+
+async function initializeAuthenticatedPopup() {
   const meRes = await apiFetch(`/me`);
   if (!meRes.ok) {
-    showBanner(
-      "Could not reach the backend — check your connection and try again.",
-    );
+    showBanner("Could not reach the backend — check your connection and try again.");
     showGoogleSignIn();
     return;
   }
@@ -120,22 +141,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Get current tab info
+  el.keySetup.classList.add("hidden");
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTab = tab;
   if (tab?.url) {
     el.currentPageUrl.textContent = displayUrl(tab.url);
     el.currentPageUrl.title = tab.url;
   }
-
   await loadState();
   attachEvents();
-
-  // Listen for background save results
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.action === "SAVE_RESULT") handleSaveResult(msg);
   });
-});
+}
 
 function showKeySetup() {
   el.keySetup.classList.remove("hidden");
@@ -161,7 +179,7 @@ function showKeySetup() {
       el.keyError.classList.remove("hidden");
       return;
     }
-    window.location.reload();
+    await initializeAuthenticatedPopup();
   };
   el.showKeySteps.onclick = () => {
     el.keyEntry.classList.add("hidden");
@@ -211,7 +229,7 @@ function showConsentRequired({ freshSignIn = false } = {}) {
     try {
       const response = await apiFetch(`/consent`, { method: "POST" });
       if (!response.ok) throw new Error();
-      window.location.reload();
+      await initializeAuthenticatedPopup();
     } catch {
       el.consentError.textContent =
         "Could not save your consent. Please try again.";
@@ -256,7 +274,8 @@ function showGoogleSignIn() {
       const consentResponse = await apiFetch(`/consent`, { method: "POST" });
       if (!consentResponse.ok) throw new Error();
 
-      window.location.reload();
+      restoreOnboardingTemplate();
+      await initializeAuthenticatedPopup();
     } catch {
       document.getElementById("keyError").textContent =
         "Sign-in failed. Try again.";
@@ -711,7 +730,7 @@ function handleSaveResult({ ok, error }) {
 
 function setStatus(text, type) {
   el.statusMsg.textContent = text;
-  el.statusMsg.className = "status-message"(type ? ` ${type}` : "");
+  el.statusMsg.className = `status-message${type ? ` ${type}` : ""}`;
 }
 
 function showBanner(msg) {

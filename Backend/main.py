@@ -44,6 +44,10 @@ app = FastAPI(title="TabChat API", docs_url=None, redoc_url=None)
 allowed_origins = [origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
 origin_regex = None
 if not allowed_origins:
+    if os.getenv("APP_ENV", "development").lower() in {"production", "prod"}:
+        raise RuntimeError(
+            "CORS_ALLOWED_ORIGINS must contain the exact Chrome extension origin in production"
+        )
     # Development-only explicit default. Production must set CORS_ALLOWED_ORIGINS
     # to the exact chrome-extension://<extension-id> origin(s).
     allowed_origins = ["http://localhost:5173"]

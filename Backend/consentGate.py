@@ -15,8 +15,8 @@ logger = logging.getLogger("consent")
 # Bump either constant to force every user back through the consent screen
 # on their next request — the require_consent dependency compares against
 # whatever's stored in the user's `consents` row.
-CURRENT_TOS_VERSION = "1.0"
-CURRENT_PRIVACY_VERSION = "1.0"
+CURRENT_TOS_VERSION = "1.1"
+CURRENT_PRIVACY_VERSION = "1.1"
 
 
 def get_consent_status(db: Session, user: User) -> dict:

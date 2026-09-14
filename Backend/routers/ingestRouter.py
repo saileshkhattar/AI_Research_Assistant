@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -63,28 +62,16 @@ async def ingest_page(
         )
         docs = text_splitter.split_documents([document])
 
-        print(f"[ingest_page] DEBUG: about to embed {len(docs)} chunks for page_id={new_page.id}")
         vectorstore = get_vectorstore()
-        print(f"[ingest_page] DEBUG: vectorstore constructed OK: {vectorstore}")
-
         vectorstore.add_documents(docs)
-        print(f"[ingest_page] DEBUG: add_documents() succeeded")
         # NOTE: vectorstore.persist() removed — chromadb >= 0.4 auto-persists
 
-    except Exception as e:
+    except Exception:
         db.rollback()
-        # Full traceback to the server console/logs — this is what actually
-        # tells us what broke (KMS, HF API, Chroma, etc.), instead of the
-        # generic message the client sees.
-        logger.error("ingest_page embedding failed: %s", e, exc_info=True)
-        print("[ingest_page] DEBUG: FULL TRACEBACK BELOW")
-        print(traceback.format_exc())
-
-        # TEMPORARY — include the real error in the response so you can see
-        # it immediately without digging through server logs. Remove this
-        # detail= override once the root cause is fixed; it can leak
-        # internal details (stack traces, key/config hints) to the client.
-        raise HTTPException(status_code=500, detail=f"Could not store page embeddings: {e}")
+        # Keep operational diagnostics in restricted server logs. Provider
+        # exceptions can reveal request/configuration details to a client.
+        logger.exception("ingest_page embedding failed")
+        raise HTTPException(status_code=500, detail="Could not store page embeddings. Please try again later.")
 
     db.commit()
 
@@ -116,8 +103,8 @@ def delete_page(page_id: str, db: Session = Depends(get_db), user: User = Depend
         results = collection.get(where={"page_id": {"$eq": page_id}})
         if results and results.get("ids"):
             collection.delete(ids=results["ids"])
-    except Exception as e:
-        print(f"Warning: could not remove Chroma vectors for page {page_id}: {e}")
+    except Exception:
+        logger.warning("could not remove vectors for page_id=%s", page_id, exc_info=True)
 
     db.delete(page)
     db.commit()

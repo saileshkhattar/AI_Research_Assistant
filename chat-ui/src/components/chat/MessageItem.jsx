@@ -84,7 +84,7 @@ export default function MessageItem({ message }) {
             fontWeight: 400,
           }}
         >
-          {message.content}
+          <MarkdownText content={message.content} />
 
           {/* Blinking cursor during streaming */}
           {isStreaming && (
@@ -130,4 +130,83 @@ export default function MessageItem({ message }) {
       )}
     </Box>
   );
+}
+
+// Keep model output as React text nodes instead of injecting model-provided
+// HTML. This covers the Markdown people expect in answers while preventing a
+// response from becoming executable extension-page markup.
+function MarkdownText({ content = "" }) {
+  const lines = content.replace(/\r/g, "").split("\n");
+  const blocks = [];
+  let list = [];
+  let codeLines = [];
+  let inCode = false;
+
+  const flushList = () => {
+    if (!list.length) return;
+    blocks.push(
+      <Box component="ul" key={`list-${blocks.length}`} sx={{ my: 0.5, pl: 2.5 }}>
+        {list.map((item, index) => <li key={index}>{inlineMarkdown(item)}</li>)}
+      </Box>,
+    );
+    list = [];
+  };
+  const flushCode = () => {
+    if (!codeLines.length) return;
+    blocks.push(
+      <Box component="pre" key={`code-${blocks.length}`} sx={{ m: "8px 0", p: 1, overflowX: "auto", borderRadius: 1, backgroundColor: "#0b1020", fontFamily: "'DM Mono', monospace", fontSize: "0.8em" }}>
+        {codeLines.join("\n")}
+      </Box>,
+    );
+    codeLines = [];
+  };
+
+  lines.forEach((line, index) => {
+    if (line.startsWith("```")) {
+      if (inCode) flushCode();
+      else flushList();
+      inCode = !inCode;
+      return;
+    }
+    if (inCode) {
+      codeLines.push(line);
+      return;
+    }
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    if (bullet) {
+      list.push(bullet[1]);
+      return;
+    }
+    flushList();
+    if (heading) {
+      blocks.push(<Box component="strong" key={`heading-${index}`} sx={{ display: "block", mt: 1, mb: 0.25, fontSize: heading[1].length === 1 ? "1.1em" : "1em" }}>{inlineMarkdown(heading[2])}</Box>);
+    } else if (line) {
+      blocks.push(<Box component="span" key={`line-${index}`} sx={{ display: "block", minHeight: "1.65em" }}>{inlineMarkdown(line)}</Box>);
+    } else {
+      blocks.push(<Box component="br" key={`break-${index}`} />);
+    }
+  });
+  if (inCode) flushCode();
+  flushList();
+  return <>{blocks}</>;
+}
+
+function inlineMarkdown(text) {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^\s)]+\))/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <Box component="code" key={index} sx={{ px: 0.4, py: 0.1, borderRadius: 0.5, backgroundColor: "#0b1020", fontFamily: "'DM Mono', monospace", fontSize: "0.85em" }}>{part.slice(1, -1)}</Box>;
+    }
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
+    const link = part.match(/^\[([^\]]+)\]\(([^\s)]+)\)$/);
+    if (link) {
+      // Permit only ordinary web links from untrusted model text.
+      try {
+        const url = new URL(link[2]);
+        if (url.protocol === "https:" || url.protocol === "http:") return <a key={index} href={url.href} target="_blank" rel="noopener noreferrer">{link[1]}</a>;
+      } catch { /* render an invalid link as text */ }
+    }
+    return part;
+  });
 }

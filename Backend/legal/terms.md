@@ -1,6 +1,6 @@
 # TabChat Terms of Service
 
-**Version:** 1.0
+**Version:** 1.1
 **Effective date:** [FILL IN AT DEPLOYMENT]
 
 Please read these terms before using TabChat. By checking the agreement box and using the extension or web app, you agree to be bound by them. If you don't agree, don't use TabChat.
@@ -38,7 +38,7 @@ Our Privacy Policy explains what we collect and how we use it — it's incorpora
 
 ## 6. Third-party services
 
-TabChat depends on third-party services — Google (sign-in), Groq (chat responses), and Hugging Face (embeddings) — along with cloud hosting infrastructure. We don't control these services, and we're not responsible for their availability, accuracy, outages, or changes to their own terms. If a provider changes or discontinues their service, TabChat's functionality may be affected or interrupted without notice.
+TabChat depends on third-party services — Google (sign-in), Groq (chat responses), Hugging Face (embeddings), and Chroma Cloud (persistent vector search, hosted in AWS us-east-1) — along with cloud hosting infrastructure. We don't control these services, and we're not responsible for their availability, accuracy, outages, or changes to their own terms. If a provider changes or discontinues their service, TabChat's functionality may be affected or interrupted without notice.
 
 ## 7. No warranty
 
