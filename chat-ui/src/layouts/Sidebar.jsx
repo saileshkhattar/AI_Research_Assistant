@@ -38,7 +38,10 @@ export default function Sidebar() {
       >
         <Box
           component="img"
-          src="../../public/logo.svg"
+          // Vite copies public assets beside the packaged chat UI's index.html.
+          // A source-tree path works neither in the production bundle nor in
+          // Chrome's extension origin.
+          src="./logo.svg"
           alt=""
           sx={{ width: 22, height: 22, borderRadius: "6px", flexShrink: 0 }}
         />
