@@ -127,7 +127,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function initializeAuthenticatedPopup() {
   const meRes = await apiFetch(`/me`);
   if (!meRes.ok) {
-    showBanner("Could not reach the backend — check your connection and try again.");
+    showBanner(
+      "Could not reach the backend — check your connection and try again.",
+    );
     showGoogleSignIn();
     return;
   }
@@ -730,7 +732,7 @@ function handleSaveResult({ ok, error }) {
 
 function setStatus(text, type) {
   el.statusMsg.textContent = text;
-  el.statusMsg.className = `status-message${type ? ` ${type}` : ""}`;
+  el.statusMsg.className = `status-message, ${type ? ` ${type}` : ""}`;
 }
 
 function showBanner(msg) {

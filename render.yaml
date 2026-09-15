@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: tabchat-backend
+    runtime: python
+    rootDir: Backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # --- Environment ---
+      - key: APP_ENV
+        value: production   
+
+ 
+      # --- Data stores ---
+      - key: DATABASE_URL         
+        sync: false
+      - key: REDIS_URL             
+        sync: false
+      - key: CHROMA_API_KEY        
+        sync: false
+ 
+      # --- Auth ---
+      - key: AUTH_JWT_SECRET       
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+ 
+      - key: AWS_REGION
+        sync: false
+      - key: KMS_KEY_ID
+        sync: false
+      - key: AWS_ACCESS_KEY_ID     
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+
+      - key: HUGGINGFACE_API_KEY   
+        sync: false
+      - key: GROQ_MODEL            
+        sync: false
+      - key: HF_EMBEDDING_MODEL    
+        sync: false
+ 
+      - key: CORS_ALLOWED_ORIGINS 
+        sync: false               
+      - key: KMS_DECRYPT_CACHE_TTL_SECONDS  
+        sync: false
