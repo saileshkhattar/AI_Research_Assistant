@@ -1,6 +1,6 @@
 /* Replace in the release pipeline. This file must never contain secrets. */
 globalThis.__RESEARCH_ASSISTANT_CONFIG__ = {
-  apiBaseUrl: "http://localhost:8000",
+  apiBaseUrl: "https://tabchat-backend.onrender.com",
 };
 
 function getApiBaseUrl() {
