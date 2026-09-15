@@ -1,11 +1,11 @@
 # TabChat Terms of Service
 
 **Version:** 1.1
-**Effective date:** [FILL IN AT DEPLOYMENT]
+**Effective date:** 15 September, 2026
 
 Please read these terms before using TabChat. By checking the agreement box and using the extension or web app, you agree to be bound by them. If you don't agree, don't use TabChat.
 
-TabChat is developed and operated by an individual developer, not a company. Contact: **[YOUR CONTACT EMAIL]**.
+TabChat is developed and operated by an individual developer, not a company. Contact: **saileshkhattar21@gmail.com**.
 
 ## 1. What TabChat is
 
@@ -58,8 +58,8 @@ We may update these terms as TabChat develops. If we make material changes, we'l
 
 ## 11. Governing law
 
-[PLACEHOLDER — specify the country/state whose law governs these terms, and where disputes would be handled. This should be filled in with your actual location/jurisdiction before launch.]
+These terms are governed by the laws of India. Courts located in Panipat, India shall have exclusive jurisdiction over any disputes arising from these terms.
 
 ## 12. Contact
 
-Questions about these terms: **[YOUR CONTACT EMAIL]**
+Questions about these terms: **saileshkhattar21@gmail.com**

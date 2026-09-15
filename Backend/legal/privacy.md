@@ -1,11 +1,11 @@
 # TabChat Privacy Policy
 
 **Version:** 1.1
-**Effective date:** [FILL IN AT DEPLOYMENT]
+**Effective date:** 15 September, 2025
 
 TabChat is a Chrome extension and companion web app that lets you save pages you're browsing and ask questions about them, grounded in an AI model. This policy explains what data TabChat collects, why, and what you can do about it.
 
-TabChat is developed and operated by an individual developer, not a company. You can reach the developer at: **[YOUR CONTACT EMAIL]**.
+TabChat is developed and operated by an individual developer, not a company. You can reach the developer at: **saileshkhattar21@gmail.com**.
 
 ---
 
@@ -86,4 +86,4 @@ If we make material changes to this policy, we'll update the version number abov
 
 ## 11. Contact
 
-Questions about this policy or your data: **[YOUR CONTACT EMAIL]**
+Questions about this policy or your data: **saileshkhattar21@gmail.com**
