@@ -1,8 +1,5 @@
 importScripts("config.js", "keys.js");
 
-// ─────────────────────────────────────────────
-// SAVE PAGE  →  inject content script
-// ─────────────────────────────────────────────
 async function handleSavePage(tabId) {
   try {
     await chrome.scripting.executeScript({
